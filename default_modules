@@ -1,2 +1,6 @@
 # these modules get loaded on startup
 essentials
+notifications
+
+sxde.reactions
+sxde.reddit
