@@ -28,3 +28,5 @@ This is a very specific-to-me problem. I run the bot on my personal machine, and
 The backup is encrypted with salsa20 (`pip install salsa20`) using the bot's login token as the key, by default. Encryption is done because the uploaded backup can be retrieved by anyone with access to the home channel. It's probably a bad idea.
 
 The home_channel is the channel which the bot considers it's home. It is specified in `data/settings.json` with they key `home_channel` and value of any TextChannel ID.
+
+Plugins can specify which files they'd like to be backed up by setting a list `BACKUP_FILES`. When `createbackup` is called, the backup plugin will go through all loaded plugins, and save the files listed in these lists to the backup. See `modules/notifications.py`'s constructor for an example.
