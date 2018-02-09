@@ -33,6 +33,10 @@ class Essentials:
 				await message.channel.send('Couldn\'t find that user.')
 
 
+		elif command == 'whereami':
+			await message.channel.send('Channel ID: %i' % message.channel.id)
+
+
 		elif command == 'define':
 			word = args.split(' ')[0]
 			defs = dictionary.get_definitions(word)[:3]
@@ -55,4 +59,4 @@ class Essentials:
 			await message.channel.send('```examples: %s```' % definition['example'])
 
 plugins = [Essentials]
-commands = ['ping', 'whoami', 'whois', 'define', 'ud']
+commands = ['ping', 'whoami', 'whois', 'define', 'ud', 'whereami']
