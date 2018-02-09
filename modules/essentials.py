@@ -8,7 +8,7 @@ class Essentials:
 		self.client = client
 
 		self.name = 'Essentials'
-		self.version = '1.0'
+		self.version = '0.1'
 		self.author = 'Julian'
 
 	async def on_message(self, message):
@@ -18,11 +18,13 @@ class Essentials:
 		if command == 'ping':
 			await message.channel.send('Pong')
 
-		if command == 'whoami':
+
+		elif command == 'whoami':
 			user = message.author
 			await message.channel.send('Name: %s; Display Name: %s; Discriminator: %s; ID: %i; Server ID: %i' % (user.name, user.display_name, user.discriminator, user.id, message.guild.id))
 
-		if command == 'whois':
+
+		elif command == 'whois':
 			target = args
 			user = discord.utils.find(lambda m: target.lower() in m.name.lower() or target.lower() in m.display_name.lower(), message.guild.members)
 			if user:
@@ -30,7 +32,8 @@ class Essentials:
 			else:
 				await message.channel.send('Couldn\'t find that user.')
 
-		if command == 'define':
+
+		elif command == 'define':
 			word = args.split(' ')[0]
 			defs = dictionary.get_definitions(word)[:3]
 			if len(defs) == 0:
@@ -43,7 +46,8 @@ class Essentials:
 					i += 1
 				await message.channel.send('```%s```' % (out,))
 
-		if command == 'ud':
+
+		elif command == 'ud':
 			word = args
 			definition = dictionary.get_urban_definitions(word)[0]
 			for i in range(len(definition['definition'])//2000 + 1):

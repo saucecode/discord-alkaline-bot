@@ -8,7 +8,7 @@ class Reddit:
 		self.client = client
 
 		self.name = 'Reddit'
-		self.version = '1.0'
+		self.version = '0.1'
 		self.author = 'Julian'
 
 	async def on_message(self, message):
