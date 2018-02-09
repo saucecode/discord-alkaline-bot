@@ -1,5 +1,7 @@
 import random, requests
 
+from ..sailortalk import sailor_word
+
 class Reddit:
 
 	def __init__(self, client):
@@ -19,5 +21,11 @@ class Reddit:
 			urls = [i['data']['url'] for i in dat['data']['children']] # pull urls from reddit post list
 			await message.channel.send(random.choice(urls))
 
+		if command == 'rrtop':
+			subreddit = args.split(' ')[0]
+			dat = requests.get('https://reddit.com/r/' + subreddit + '/top/.json?t=all', headers={'User-Agent':'Discord-Alkaline-Bot'}).json()
+			urls = [i['data']['url'] for i in dat['data']['children']] # pull urls from reddit post list
+			await message.channel.send(random.choice(urls))
+
 plugins = [Reddit]
-commands = ['rr']
+commands = ['rr', 'rrtop']
