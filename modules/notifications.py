@@ -11,6 +11,8 @@ class Notifications:
 
 		self.notifications_file = os.getcwd() + os.sep + 'data' + os.sep + 'notifications.json'
 
+		self.BACKUP_FILES = ['data' + os.sep + 'notifications.json']
+
 		self.load_resources()
 
 		self.client.loop.create_task(self.background_task())
