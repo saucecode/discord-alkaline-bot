@@ -2,6 +2,8 @@ import discord
 import asyncio
 import importlib
 import traceback
+import json
+import os
 
 COMMAND_PREFIX = ']'
 
@@ -16,6 +18,9 @@ class AlkalineClient(discord.Client):
 		self.COMMAND_PREFIX = COMMAND_PREFIX
 
 		self.plugins = {}
+		self.settings = {}
+
+		self.load_settings()
 
 		with open('default_modules','r') as f:
 			for line in f:
@@ -23,6 +28,17 @@ class AlkalineClient(discord.Client):
 				if len(line) < 3 or line[0] == '#': continue
 
 				self.load_chatbot_module(line)
+
+	def load_settings(self):
+		if not os.path.exists('data/settings.json'):
+			self.save_settings()
+
+		with open('data/settings.json', 'r') as f:
+			self.settings = json.load(f)
+
+	def save_settings(self):
+		with open('data/settings.json', 'w') as f:
+			json.dump(self.settings, f)
 
 	def load_chatbot_module(self, module_identifier):
 		print('Loading module:',module_identifier, end=' ...')
