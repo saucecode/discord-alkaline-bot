@@ -5,6 +5,8 @@ class Reactions:
 	def __init__(self, client):
 		self.client = client
 
+		self.BACKUP_FILES = ['data/reactions.json']
+
 		self.reactions = {}
 		self.load_reactions()
 
