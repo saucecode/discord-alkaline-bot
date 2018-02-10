@@ -108,4 +108,5 @@ venv.bak/
 secrettoken
 data/reactions.json
 data/notifications.json
-
+data/backup.zip*
+fetched_backup.zip
