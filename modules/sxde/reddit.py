@@ -28,4 +28,13 @@ class Reddit:
 			await message.channel.send(random.choice(urls))
 
 plugins = [Reddit]
-commands = {'rr':{}, 'rrtop':{}}
+commands = {
+	'rr':{
+		'usage': '[subreddit]',
+		'desc':  'Retrieve a random reddit post from [subreddit].'
+	},
+	'rrtop':{
+		'usage': '[subreddit]',
+		'desc':  'Retrieve a random all-time best reddit post from [subreddit].'
+	}
+}

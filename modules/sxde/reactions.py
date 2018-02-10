@@ -53,5 +53,6 @@ plugins = [Reactions]
 commands = {
 	'reactionadd': {
 		'usage': 'reactionadd [reaction name] [reaction]',
+		'desc':  'Saves the text or link [reaction] under [reaction name]'
 	}
 }

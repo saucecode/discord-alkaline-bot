@@ -67,4 +67,23 @@ class Essentials:
 			await message.channel.send('You have permissions: `%s`' % ' '.join(self.client.get_members_permissions(message.author.id)))
 
 plugins = [Essentials]
-commands = {'ping':{}, 'whoami':{}, 'whois':{}, 'define':{}, 'ud':{}, 'whereami':{'perms':['op']}, 'filth':{}, 'perms':{}}
+commands = {
+	'ping':{},
+	'whoami':{},
+	'whois':{},
+	'define':{
+		'usage': '[word]',
+		'desc':  'Look up the definition of a word.'
+	},
+	'ud':{
+		'usage': '[word or phrase]',
+		'desc':  'Look up the definition of a word from urban dictionary.'
+	},
+	'whereami':{'perms':['op']},
+	'filth':{
+		'desc': 'Generate a random filthy/offensive word or phrase.'
+	},
+	'perms':{
+		'desc': 'Prints your permissions.'
+	}
+}
