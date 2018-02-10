@@ -31,12 +31,23 @@ class AlkalineClient(discord.Client):
 
 				self.load_chatbot_module(line)
 
+		print(
+			'Alkaline has loaded', len(self.plugins),
+			'modules, containing', len( [item for mod in self.plugins for item in self.plugins[mod]] ),
+			'plugins, and found', sum( [len(mod.commands) for mod in self.plugins] ),
+			'commands.'
+		)
+
 	def load_settings(self):
 		if not os.path.exists('data/settings.json'):
 			self.save_settings()
 
 		with open('data/settings.json', 'r') as f:
 			self.settings = json.load(f)
+
+			if 'command_prefix' in self.settings:
+				self.COMMAND_PREFIX = self.settings['command_prefix']
+				COMMAND_PREFIX = self.settings['command_prefix']
 
 	def save_settings(self):
 		with open('data/settings.json', 'w') as f:
@@ -54,14 +65,14 @@ class AlkalineClient(discord.Client):
 			json.dump(self.permissions, f, indent=4, separators=(',', ': '))
 
 	# returns a list of strings denoting the user's permissions
-	def get_members_permissions(self, userid):
+	def get_members_permissions(self, userid : int):
 		return [perm for perm in self.permissions if int(userid) in self.permissions[perm]]
 
 	# returns the set of permissions that a user has out of the list of permissions given
-	def get_member_has_any_permissions(self, perms, userid):
+	def get_member_has_any_permissions(self, perms : list, userid : int):
 		return set(perms).intersection(self.get_members_permissions(userid))
 
-	def load_chatbot_module(self, module_identifier):
+	def load_chatbot_module(self, module_identifier : str):
 		print('Loading module:',module_identifier, end=' ...')
 
 		try:
@@ -101,7 +112,7 @@ class AlkalineClient(discord.Client):
 					# execute command only if user has permission or if command requires no permissions
 					if not 'perms' in mod.commands[command] or self.get_member_has_any_permissions(mod.commands[command]['perms'], message.author.id):
 						for plugin in self.plugins[mod]:
-							await plugin.on_command(message, command, message.content[2 + len(command):])
+							await plugin.on_command(message, command, message.content[1 + len(self.COMMAND_PREFIX) + len(command):])
 					else:
 						await message.channel.send('Permission denied.')
 
@@ -123,6 +134,43 @@ class AlkalineClient(discord.Client):
 
 			if message.content.startswith(COMMAND_PREFIX + 'reloadmodule') and can_core_commands:
 				await self.reload_plugin_module(message)
+
+			if message.content.startswith(COMMAND_PREFIX + 'unloadmodule') and can_core_commands:
+				await self.unload_plugin_module(message)
+
+
+	async def unload_plugin_module(self, message):
+		module_name = message.content.split(' ')[1]
+		candidates = [mod for mod in self.plugins if module_name in mod.__name__]
+
+		if len(candidates) > 1:
+			await message.channel.send('Please be more specific. Found candidates: %s' % ' '.join([x.__name__ for x in candidates]))
+			return
+
+		elif len(candidates) == 0:
+			await message.channel.send('Could not find a module with that name.')
+			return
+
+		mod = candidates[0]
+		success_message = await message.channel.send('Unloading module %s (has %i plugins) ...' % (mod.__name__, len(self.plugins[mod])))
+
+		try:
+			plugin_tasks = [ task for task in asyncio.Task.all_tasks() if hasattr(task, 'alkaline_identifier') and task.alkaline_identifier in [plugin.name for plugin in self.plugins[mod]] ]
+			if len(plugin_tasks) > 0:
+				# await message.channel.send('Stopping %i tasks belonging to %s\'s plugins' % (len(plugin_tasks), mod.__name__))
+				await success_message.edit(content=success_message.content + ' stopping %i tasks...' % len(plugin_tasks))
+
+				for task in plugin_tasks:
+					task.cancel()
+
+
+			del self.plugins[mod]
+			await success_message.edit(content=success_message.content + ' success.')
+		except Exception as ex:
+			await success_message.edit(content=success_message.content + ' failed: %s' % ex.msg)
+			traceback.print_exc()
+			print()
+
 
 	async def reload_all_plugin_modules(self, message):
 		output = []
