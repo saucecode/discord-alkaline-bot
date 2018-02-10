@@ -15,7 +15,13 @@ class Notifications:
 
 		self.load_resources()
 
-		self.client.loop.create_task(self.background_task())
+		for task in asyncio.Task.all_tasks():
+			if hasattr(task, 'alkaline_identifier') and task.alkaline_identifier == self.name:
+				print('STOPPED TASK:', self.name)
+				task.cancel()
+
+		task = self.client.loop.create_task(self.background_task())
+		task.alkaline_identifier = self.name
 
 	def load_resources(self):
 		self.notifications = {'remind':[], 'tell':{}}
