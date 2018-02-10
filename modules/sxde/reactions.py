@@ -27,7 +27,9 @@ class Reactions:
 
 	async def on_message(self, message):
 		if message.content[:2] == self.client.COMMAND_PREFIX * 2 and len(message.content) > 2:
-			await message.channel.send(random.choice(self.reactions[message.content[2:]]))
+			reaction_name = message.content[2:]
+			if reaction_name in self.reactions:
+				await message.channel.send(random.choice(self.reactions[reaction_name]))
 
 	async def on_command(self, message, command, args):
 		if command == 'reactionadd':
