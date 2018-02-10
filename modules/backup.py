@@ -7,6 +7,8 @@ class Backup:
 	def __init__(self, client):
 		self.client = client
 
+		self.BACKUP_FILES = ['data/settings.json', 'data/permissions.json']
+
 		self.name = 'BackupOperator'
 		self.version = '0.5'
 		self.author = 'Julian'
@@ -68,7 +70,7 @@ class Backup:
 			# download zipfile, decrypt, and put it in working directory
 			with open('fetched_backup.zip','wb') as f:
 				backup_bytes_encrypted = io.BytesIO()
-				backup_message.attachments[0].save(backup_bytes_encrypted)
+				await backup_message.attachments[0].save(backup_bytes_encrypted)
 				f.write(self.encrypt_bytes( backup_bytes_encrypted.getvalue() ))
 
 			await message.channel.send('Fetched backup.')
