@@ -19,8 +19,10 @@ class AlkalineClient(discord.Client):
 
 		self.plugins = {}
 		self.settings = {}
+		self.permissions = {}
 
 		self.load_settings()
+		self.load_permissions()
 
 		with open('default_modules','r') as f:
 			for line in f:
@@ -38,7 +40,26 @@ class AlkalineClient(discord.Client):
 
 	def save_settings(self):
 		with open('data/settings.json', 'w') as f:
-			json.dump(self.settings, f)
+			json.dump(self.settings, f, indent=4, separators=(',', ': '))
+
+	def load_permissions(self):
+		if not os.path.exists('data/permissions.json'):
+			self.save_permissions()
+
+		with open('data/permissions.json', 'r') as f:
+			self.permissions = json.load(f)
+
+	def save_permissions(self):
+		with open('data/permissions.json', 'w') as f:
+			json.dump(self.permissions, f, indent=4, separators=(',', ': '))
+
+	# returns a list of strings denoting the user's permissions
+	def get_members_permissions(self, userid):
+		return [perm for perm in self.permissions if int(userid) in self.permissions[perm]]
+
+	# returns the set of permissions that a user has out of the list of permissions given
+	def get_member_has_any_permissions(self, perms, userid):
+		return set(perms).intersection(self.get_members_permissions(userid))
 
 	def load_chatbot_module(self, module_identifier):
 		print('Loading module:',module_identifier, end=' ...')
@@ -74,27 +95,34 @@ class AlkalineClient(discord.Client):
 		# detects command attempts and triggers on_command plugin functions
 		if message.content.startswith(COMMAND_PREFIX) and len(message.content) > 1 and message.author.id != self.user.id:
 			command = message.content.split(' ')[0][1:]
-			for key in self.plugins:
-				if command in key.commands:
-					for plugin in self.plugins[key]:
-						await plugin.on_command(message, command, message.content[2 + len(command):])
+			for mod in self.plugins:
+				if command in mod.commands:
+
+					# execute command only if user has permission or if command requires no permissions
+					if not 'perms' in mod.commands[command] or self.get_member_has_any_permissions(mod.commands[command]['perms'], message.author.id):
+						for plugin in self.plugins[mod]:
+							await plugin.on_command(message, command, message.content[2 + len(command):])
+					else:
+						await message.channel.send('Permission denied.')
 
 
 		# HARD CODED FUNCTIONS
 
-		if message.content == COMMAND_PREFIX + 'modules':
-			await message.channel.send( "```%s```" % '\n'.join([k.__name__ + '\n\t' + ' '.join([a.__class__.__name__ for a in self.plugins[k]]) for k in self.plugins]) )
+		if message.content.startswith(self.COMMAND_PREFIX):
+			can_core_commands = self.get_member_has_any_permissions(['admin'], message.author.id)
+			if message.content == COMMAND_PREFIX + 'modules' and can_core_commands:
+				await message.channel.send( "```%s```" % '\n'.join([k.__name__ + '\n\t' + ' '.join([a.__class__.__name__ for a in self.plugins[k]]) for k in self.plugins]) )
 
-		if message.content == COMMAND_PREFIX + 'reloadall':
-			await self.reload_all_plugin_modules(message)
+			if message.content == COMMAND_PREFIX + 'reloadall' and can_core_commands:
+				await self.reload_all_plugin_modules(message)
 
-		if message.content.startswith(COMMAND_PREFIX + 'loadmodule'):
-			module_name = message.content.split(' ')[1]
-			flag = self.load_chatbot_module(module_name)
-			await message.channel.send('Successful.' if flag == True else flag)
+			if message.content.startswith(COMMAND_PREFIX + 'loadmodule') and can_core_commands:
+				module_name = message.content.split(' ')[1]
+				flag = self.load_chatbot_module(module_name)
+				await message.channel.send('Successful.' if flag == True else flag)
 
-		if message.content.startswith(COMMAND_PREFIX + 'reloadmodule'):
-			await self.reload_plugin_module(message)
+			if message.content.startswith(COMMAND_PREFIX + 'reloadmodule') and can_core_commands:
+				await self.reload_plugin_module(message)
 
 	async def reload_all_plugin_modules(self, message):
 		output = []

@@ -85,4 +85,4 @@ class Backup:
 
 
 plugins = [Backup]
-commands = ['createbackup', 'grabbackup']
+commands = {'createbackup':{'perms':['op']}, 'grabbackup':{'perms':['op']}}

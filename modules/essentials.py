@@ -1,6 +1,7 @@
 import discord
 
 from . import dictionarycom as dictionary
+from .sailortalk import sailor_word
 
 class Essentials:
 
@@ -58,5 +59,12 @@ class Essentials:
 				await message.channel.send('```%s```' % definition['definition'][i*2000:i*2000+2000])
 			await message.channel.send('```examples: %s```' % definition['example'])
 
+
+		elif command == 'filth':
+			await message.channel.send(sailor_word())
+
+		elif command == 'perms':
+			await message.channel.send('You have permissions: `%s`' % ' '.join(self.client.get_members_permissions(message.author.id)))
+
 plugins = [Essentials]
-commands = ['ping', 'whoami', 'whois', 'define', 'ud', 'whereami']
+commands = {'ping':{}, 'whoami':{}, 'whois':{}, 'define':{}, 'ud':{}, 'whereami':{'perms':['op']}, 'filth':{}, 'perms':{}}

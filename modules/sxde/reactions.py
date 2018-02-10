@@ -18,4 +18,4 @@ class Reactions:
 			await message.channel.send('I\'m trapped in a Google data center send help')
 
 plugins = [Reactions]
-commands = ['reactionadd']
+commands = {'reactionadd':{}}

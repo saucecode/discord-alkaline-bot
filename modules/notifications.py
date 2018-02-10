@@ -66,4 +66,4 @@ class Notifications:
 			await asyncio.sleep(1)
 
 plugins = [Notifications]
-commands = ['remind']
+commands = {'remind':{}}

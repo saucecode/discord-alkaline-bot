@@ -28,4 +28,4 @@ class Reddit:
 			await message.channel.send(random.choice(urls))
 
 plugins = [Reddit]
-commands = ['rr', 'rrtop']
+commands = {'rr':{}, 'rrtop':{}}

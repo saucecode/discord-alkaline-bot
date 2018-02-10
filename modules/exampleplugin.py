@@ -17,4 +17,4 @@ class ExamplePlugin:
 			await message.channel.send('I\'m trapped in a Google data center send help')
 
 plugins = [ExamplePlugin]
-commands = ['test']
+commands = {'test':{}}
