@@ -92,6 +92,16 @@ class AlkalineClient(discord.Client):
 		print(' done.')
 		return True
 
+	async def on_message_edit(self, before, after):
+		# ignore messages from myself and from other bots
+		if before.author.id == self.user.id or before.author.bot:
+			return
+
+		# triggers plugin on_message_edit plugin functions
+		for mod in self.plugins:
+			for plugin in self.plugins[mod]:
+				await plugin.on_message_edit(before, after)
+
 	async def on_message(self, message):
 
 		# ignore messages from myself and from other bots
