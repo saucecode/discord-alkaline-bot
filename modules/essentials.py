@@ -2,6 +2,7 @@ import discord
 
 from . import dictionarycom as dictionary
 from .sailortalk import sailor_word
+from . import postfix
 
 class Essentials:
 
@@ -66,7 +67,23 @@ class Essentials:
 		elif command == 'perms':
 			await message.channel.send('You have permissions: `%s`' % ' '.join(self.client.get_members_permissions(message.author.id)))
 
-plugins = [Essentials]
+class EssentialsCalc:
+
+	def __init__(self, client):
+		self.client = client
+
+		self.name = 'Essentials-Calc'
+		self.version = '0.1'
+		self.author = 'Julian'
+
+	async def on_message(self, message):
+		pass
+
+	async def on_command(self, message, command, args):
+		if command == 'calc':
+			await message.channel.send( postfix.outputResult( postfix.doPostfix(message.content[1 + len(command) + len(self.client.COMMAND_PREFIX):].strip()) ) )
+
+plugins = [Essentials, EssentialsCalc]
 commands = {
 	'ping':{},
 	'whoami':{},
@@ -85,5 +102,11 @@ commands = {
 	},
 	'perms':{
 		'desc': 'Prints your permissions.'
+	},
+
+	'calc':{
+		'usage': '[postfix expr]',
+		'desc':  'Does a calculation.',
+		'example': '3 3 * 4 4 * + sqrt',
 	}
 }
