@@ -1,6 +1,7 @@
+from .alkalineplugin import AlkalinePlugin
 import discord, os, time, json, asyncio
 
-class Notifications:
+class Notifications(AlkalinePlugin):
 
 	def __init__(self, client):
 		self.client = client

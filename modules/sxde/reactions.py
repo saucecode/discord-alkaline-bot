@@ -1,6 +1,7 @@
+from ..alkalineplugin import AlkalinePlugin
 import discord, os, json, random
 
-class Reactions:
+class Reactions(AlkalinePlugin):
 
 	def __init__(self, client):
 		self.client = client

@@ -1,6 +1,7 @@
+from .alkalineplugin import AlkalinePlugin
 import discord
 
-class ExamplePlugin:
+class ExamplePlugin(AlkalinePlugin):
 
 	def __init__(self, client):
 		self.client = client
@@ -8,9 +9,6 @@ class ExamplePlugin:
 		self.name = 'ExamplePlugin'
 		self.version = '-0.01'
 		self.author = 'Billy Maize'
-
-	async def on_message(self, message : discord.Message):
-		pass
 
 	async def on_command(self, message: discord.Message, command : str, args : str):
 		if command == 'test':

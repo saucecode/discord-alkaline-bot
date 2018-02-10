@@ -1,8 +1,9 @@
+from .alkalineplugin import AlkalinePlugin
 import discord, hashlib, io
 
 from zipfile import ZipFile
 
-class Backup:
+class Backup(AlkalinePlugin):
 
 	def __init__(self, client):
 		self.client = client
@@ -12,9 +13,6 @@ class Backup:
 		self.name = 'BackupOperator'
 		self.version = '0.5'
 		self.author = 'Julian'
-
-	async def on_message(self, message):
-		pass
 
 	async def on_command(self, message, command, args):
 		if command == 'createbackup':

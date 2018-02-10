@@ -1,10 +1,11 @@
+from .alkalineplugin import AlkalinePlugin
 import discord
 
 from . import dictionarycom as dictionary
 from .sailortalk import sailor_word
 from . import postfix
 
-class Essentials:
+class Essentials(AlkalinePlugin):
 
 	def __init__(self, client):
 		self.client = client
@@ -12,9 +13,6 @@ class Essentials:
 		self.name = 'Essentials'
 		self.version = '0.1'
 		self.author = 'Julian'
-
-	async def on_message(self, message):
-		pass
 
 	async def on_command(self, message, command, args):
 		if command == 'ping':
@@ -67,7 +65,7 @@ class Essentials:
 		elif command == 'perms':
 			await message.channel.send('You have permissions: `%s`' % ' '.join(self.client.get_members_permissions(message.author.id)))
 
-class EssentialsCalc:
+class EssentialsCalc(AlkalinePlugin):
 
 	def __init__(self, client):
 		self.client = client
@@ -75,9 +73,6 @@ class EssentialsCalc:
 		self.name = 'Essentials-Calc'
 		self.version = '0.1'
 		self.author = 'Julian'
-
-	async def on_message(self, message):
-		pass
 
 	async def on_command(self, message, command, args):
 		if command == 'calc':

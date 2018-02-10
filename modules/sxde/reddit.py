@@ -1,8 +1,9 @@
+from ..alkalineplugin import AlkalinePlugin
 import random, requests
 
 from ..sailortalk import sailor_word
 
-class Reddit:
+class Reddit(AlkalinePlugin):
 
 	def __init__(self, client):
 		self.client = client
@@ -10,9 +11,6 @@ class Reddit:
 		self.name = 'Reddit'
 		self.version = '0.1'
 		self.author = 'Julian'
-
-	async def on_message(self, message):
-		pass
 
 	async def on_command(self, message, command, args):
 		if command == 'rr':
