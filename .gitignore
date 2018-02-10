@@ -106,3 +106,6 @@ venv.bak/
 .mypy_cache/
 
 secrettoken
+data/reactions.json
+data/notifications.json
+
