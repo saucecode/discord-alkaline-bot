@@ -1,7 +1,21 @@
 from .alkalineplugin import AlkalinePlugin
-import discord, asyncio, youtube_dl, requests, urllib3, io
+import discord, asyncio, youtube_dl, requests, urllib3, io, subprocess, threading, json
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 from concurrent.futures import ThreadPoolExecutor
+
+'''
+
+			HERE BE DRAGONS
+
+			https://github.com/Rapptz/discord.py/issues/1065
+			https://stackoverflow.com/questions/48727101/python-subprocess-popen-fails-to-correctly-pipe-urllib3-response
+
+			subprocess.Popen HATES blocking stdin streams.
+			A threading.Thread hack is used to correctly implement the streaming of audio resources to ffmpeg.
+
+'''
 
 class VoiceManager(AlkalinePlugin):
 
@@ -11,6 +25,8 @@ class VoiceManager(AlkalinePlugin):
 		self.queue = []
 		self.executor = ThreadPoolExecutor(4)
 		self.http = urllib3.PoolManager()
+
+		self.audio_format_code = '171'
 
 		self.name = 'VoiceManager'
 		self.version = '0.3'
@@ -44,17 +60,22 @@ class VoiceManager(AlkalinePlugin):
 			self.queue.append( {'type':'file', 'filename': 'original.webm'} )
 
 		elif command == 'yt':
-			url = args
-			data = await self.client.loop.run_in_executor(self.executor, self.get_youtube_info, url)
-			if type(data) == dict:
-				fmt = [j for j in data['formats'] if j['format_id'] == '171'][0]
-				self.queue.append( {'type':'download', 'url':fmt['url'], 'filename':'downloaded/{}.webm'.format(data['id'])} )
-				# await self.client.loop.run_in_executor(self.executor, self.download_url_into, fmt['url'], 'downloaded/' + data['id'] + '.m4a')
+			self.queue.append( {'type':'query', 'query': args} )
+
+		elif command == 'skip':
+			self.client.voice.stop()
+
+		elif command == 'stop':
+			self.queue.clear()
+			self.client.voice.stop()
+
+		elif command == 'queue':
+			await message.channel.send('```\n{}\n```'.format(json.dumps(self.queue,indent=4)))
 
 
 	def get_youtube_info(self, url):
 		with youtube_dl.YoutubeDL({'format':'bestaudio/audio', 'default_search':'ytsearch'}) as yt:
-			data = yt.extract_info(url, download=False, process=False)
+			data = yt.extract_info(url, download=False)
 			return data
 
 	def download_url_into(self, url, path):
@@ -76,25 +97,65 @@ class VoiceManager(AlkalinePlugin):
 						self.client.voice.play(
 							discord.FFmpegPCMAudio(fi, pipe=True), after=fi.close
 						)
-						self.queue.pop()
+						self.queue.pop(0)
 
-					elif self.queue[0]['type'] == 'download':
+					elif self.queue[0]['type'] == 'query':
+						data = await self.client.loop.run_in_executor(self.executor, self.get_youtube_info, self.queue[0]['query'])
 
-						r = self.http.request('GET', self.queue[0]['url'], preload_content=False)
+						if 'entries' in data:
+							data = data['entries'][0]
+
+						chosen_format = [j for j in data['formats'] if j['format_id'] == '171'][0]
+
+						player = discord.FFmpegPCMAudio(subprocess.PIPE, pipe=True)
+						req = self.http.request('GET', chosen_format['url'], preload_content=False)
+
+						def wdiect(r,proc):
+							try:
+								while True:
+									chunk = r.read(8192)
+									if not chunk:
+										r.close()
+										print('STOPPED THREAD - END OF STREAM')
+										proc.stdin.close()
+										break
+									proc.stdin.write(chunk)
+							except BrokenPipeError:
+								print('STOPPED THREAD - BROKEN PIPE')
+								r.close()
+
+						download_thread = threading.Thread(target=wdiect, args=(req,player._process))
+
+						def after():
+							req.close()
+							#player.stdin.close()
 
 						self.client.voice.play(
-							discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(r, pipe=True), volume=0.5), after=r.release_conn
+							discord.PCMVolumeTransformer(player, volume=0.5), after=after
 						)
-						self.queue.pop()
+
+						download_thread.start()
+						self.queue.pop(0)
 
 			await asyncio.sleep(1)
 
 plugins = [VoiceManager]
 commands = {
 	'voice': {
-		'usage':'',
 		'desc': 'Join/leave your voice channel.'
 	},
 	'play':{},
-	'yt':{}
+	'yt':{
+		'usage': '[youtube url or search query]',
+		'desc':  'Adds a youtube video to the queue.'
+	},
+	'queue':{
+		'desc':  'Lists items in the play queue.'
+	},
+	'skip':{
+		'desc':  'Skips the currently playing song.'
+	},
+	'stop':{
+		'desc':  'Stops playing and clears the queue.'
+	}
 }

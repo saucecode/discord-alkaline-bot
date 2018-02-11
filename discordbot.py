@@ -5,6 +5,7 @@ import traceback
 import json
 import os
 
+discord.opus.load_opus('libopus.so.0')
 COMMAND_PREFIX = ']'
 
 class AlkalineClient(discord.Client):
@@ -16,6 +17,8 @@ class AlkalineClient(discord.Client):
 		print('------')
 
 		self.COMMAND_PREFIX = COMMAND_PREFIX
+
+		self.voice = None
 
 		self.plugins = {}
 		self.settings = {}
