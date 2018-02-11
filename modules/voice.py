@@ -95,6 +95,17 @@ class VoiceManager(AlkalinePlugin):
 			else:
 				await message.channel.send('Queue is empty.')
 
+		elif command == 'pop':
+			if len(self.queue) > 0:
+				if len(args) > 0:
+					try:
+						int(args)
+						await message.channel.send('Removed {} from queue'.format(self.queue.pop(int(args))))
+					except:
+						await message.channel.send('Must specify a position.')
+				else:
+					await message.channel.send('Removed {} from queue'.format(self.queue.pop()))
+
 	def search_songs(self, query):
 		files = os.listdir('downloaded/')
 		flatten = lambda l: [item for sublist in l for item in sublist]
@@ -209,13 +220,20 @@ commands = {
 	'voice': {
 		'desc': 'Join/leave your voice channel.'
 	},
-	'play':{},
+	'play':{
+		'usage': '[song or file name]',
+		'desc':  'Searches for a cached file and adds to the queue. If no cached file found, searches YouTube. Also accepts YouTube URLs.'
+	},
 	'yt':{
 		'usage': '[youtube url or search query]',
 		'desc':  'Adds a youtube video to the queue.'
 	},
 	'queue':{
 		'desc':  'Lists items in the play queue.'
+	},
+	'pop':{
+		'usage': '[position]',
+		'desc':  'Removes song queued at position [position], or the end of the queue.'
 	},
 	'skip':{
 		'desc':  'Skips the currently playing song.'
