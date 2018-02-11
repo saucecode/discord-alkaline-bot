@@ -84,7 +84,16 @@ class VoiceManager(AlkalinePlugin):
 			self.client.voice.stop()
 
 		elif command == 'queue':
-			await message.channel.send('```\n{}\n```'.format(json.dumps(self.queue,indent=4)))
+			if len(self.queue) > 0:
+				await message.channel.send(
+				'```\n{}\n```'.format(
+					'\n'.join(
+						[ '{}. ({}) {}'.format(i, 'ytsearch' if x['type'] == 'query' else 'cache', x['query'] if x['type'] == 'query' else x['filename']) for i,x in enumerate(self.queue) ]
+					)
+				)
+				)
+			else:
+				await message.channel.send('Queue is empty.')
 
 	def search_songs(self, query):
 		files = os.listdir('downloaded/')
@@ -105,7 +114,7 @@ class VoiceManager(AlkalinePlugin):
 				if tag.lower() in f.lower().replace('-',''):
 					count += 1
 			files_sorted.append( (count, f) )
-		files_sorted = [x[1] for x in sorted(files_sorted, reverse=True, key=lambda x:x[0])]
+		files_sorted = [x[1] for x in sorted(files_sorted, reverse=True, key=lambda x:x[0]) if x[0]>1]
 		return files_sorted
 
 	def get_youtube_info(self, url):
@@ -143,7 +152,7 @@ class VoiceManager(AlkalinePlugin):
 							f = open(fname, 'wb')
 							try:
 								while True:
-									chunk = r.read(8192)
+									chunk = r.read(8192*4)
 									if not chunk:
 										r.close()
 										print('STOPPED THREAD - END OF STREAM')
@@ -155,7 +164,7 @@ class VoiceManager(AlkalinePlugin):
 								print('STOPPING THREAD - BROKEN PIPE - CONTINUING DOWNLOAD')
 
 								while True:
-									chunk = r.read(8192)
+									chunk = r.read(8192*4)
 									if not chunk:
 										break
 									f.write(chunk)
