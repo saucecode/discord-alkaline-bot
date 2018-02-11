@@ -1,5 +1,5 @@
 from .alkalineplugin import AlkalinePlugin
-import discord, asyncio, youtube_dl, requests, urllib3, io, subprocess, threading, json
+import discord, asyncio, youtube_dl, requests, urllib3, io, subprocess, threading, json, re, os
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -57,7 +57,21 @@ class VoiceManager(AlkalinePlugin):
 					await self.client.voice.disconnect()
 
 		elif command == 'play':
-			self.queue.append( {'type':'file', 'filename': 'original.webm'} )
+			if args.startswith('https://') or args.startswith('http://'):
+				self.queue.append( {'type':'query', 'query': args} )
+			else:
+				search = self.search_songs(args)
+				if len(search) > 5:
+					await message.channel.send('Found more than 5 results - please be more specific.')
+				elif len(search) > 1:
+					await message.channel.send('Found these results - please be more specific.\n```\n{}\n```'.format( '\n'.join(search) ))
+				elif len(search) == 0:
+					await message.channel.send('Added {} to the queue (ytsearch).'.format( args ))
+					self.queue.append( {'type':'query', 'query': args} )
+				else:
+					await message.channel.send('Added {} to the queue. (cached)'.format( '-'.join(search[0].split('-')[:-1]) ))
+					self.queue.append( {'type':'file', 'filename': 'downloaded/' + search[0]} )
+
 
 		elif command == 'yt':
 			self.queue.append( {'type':'query', 'query': args} )
@@ -72,18 +86,35 @@ class VoiceManager(AlkalinePlugin):
 		elif command == 'queue':
 			await message.channel.send('```\n{}\n```'.format(json.dumps(self.queue,indent=4)))
 
+	def search_songs(self, query):
+		files = os.listdir('downloaded/')
+		flatten = lambda l: [item for sublist in l for item in sublist]
+
+		if '..' in query or '/' in query:
+			return []
+
+		# get all files who contain at least one word in the query string
+		# example: query = "rick never" will return all files with "rick" and "never" in their names.
+		# cases are ignored
+		files = list(set(flatten([[x for x in files if q.lower() in x.lower().replace('-','')] for q in query.split(' ')])))
+
+		files_sorted = []
+		for f in files:
+			count = 0
+			for tag in query.split(' '):
+				if tag.lower() in f.lower().replace('-',''):
+					count += 1
+			files_sorted.append( (count, f) )
+		files_sorted = [x[1] for x in sorted(files_sorted, reverse=True, key=lambda x:x[0])]
+		return files_sorted
 
 	def get_youtube_info(self, url):
 		with youtube_dl.YoutubeDL({'format':'bestaudio/audio', 'default_search':'ytsearch'}) as yt:
 			data = yt.extract_info(url, download=False)
 			return data
 
-	def download_url_into(self, url, path):
-		req = requests.get(url, stream=True)
-		with open(path, 'wb') as f:
-			for chunk in req.iter_content(chunk_size=1024*40):
-				if chunk:
-					f.write(chunk)
+	def sanitize_video_title(self, title):
+		return re.sub('[^a-zA-Z0-9\\._ -]', '', title)
 
 	async def background_task(self):
 		while 1:
@@ -91,11 +122,8 @@ class VoiceManager(AlkalinePlugin):
 			if len(self.queue) > 0:
 				if not self.client.voice.is_playing():
 					if self.queue[0]['type'] == 'file':
-
-						fi = open(self.queue[0]['filename'], 'rb')
-
 						self.client.voice.play(
-							discord.FFmpegPCMAudio(fi, pipe=True), after=fi.close
+							discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(self.queue[0]['filename']), volume=0.5)
 						)
 						self.queue.pop(0)
 
@@ -109,8 +137,10 @@ class VoiceManager(AlkalinePlugin):
 
 						player = discord.FFmpegPCMAudio(subprocess.PIPE, pipe=True)
 						req = self.http.request('GET', chosen_format['url'], preload_content=False)
+						filename = 'downloaded/{}-{}.webm'.format( self.sanitize_video_title(data['title']), data['id'] )
 
-						def wdiect(r,proc):
+						def wdiect(r,proc,fname):
+							f = open(fname, 'wb')
 							try:
 								while True:
 									chunk = r.read(8192)
@@ -119,12 +149,22 @@ class VoiceManager(AlkalinePlugin):
 										print('STOPPED THREAD - END OF STREAM')
 										proc.stdin.close()
 										break
+									f.write(chunk) # FILE WRITE MUST GO FIRST!!
 									proc.stdin.write(chunk)
 							except BrokenPipeError:
-								print('STOPPED THREAD - BROKEN PIPE')
-								r.close()
+								print('STOPPING THREAD - BROKEN PIPE - CONTINUING DOWNLOAD')
 
-						download_thread = threading.Thread(target=wdiect, args=(req,player._process))
+								while True:
+									chunk = r.read(8192)
+									if not chunk:
+										break
+									f.write(chunk)
+
+								r.close()
+							finally:
+								f.close()
+
+						download_thread = threading.Thread(target=wdiect, args=(req,player._process,filename))
 
 						def after():
 							req.close()
@@ -136,6 +176,22 @@ class VoiceManager(AlkalinePlugin):
 
 						download_thread.start()
 						self.queue.pop(0)
+
+						'''data = await self.client.loop.run_in_executor(self.executor, self.get_youtube_info, self.queue[0]['query'])
+
+						if 'entries' in data:
+							data = data['entries'][0]
+
+						chosen_format = [j for j in data['formats'] if j['format_id'] == '171'][0]
+
+						player = discord.FFmpegPCMAudio(chosen_format['url'])
+						print('playing',chosen_format['url'])
+
+						self.client.voice.play(
+							discord.PCMVolumeTransformer(player, volume=0.5)
+						)
+
+						self.queue.pop(0)'''
 
 			await asyncio.sleep(1)
 
