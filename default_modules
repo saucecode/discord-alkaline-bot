@@ -1,7 +1,9 @@
 # these modules get loaded on startup
 essentials
+helpful
 notifications
 backup
+voice
 
 sxde.reactions
 sxde.reddit
