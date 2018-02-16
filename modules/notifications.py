@@ -171,4 +171,9 @@ class Notifications(AlkalinePlugin):
 			await asyncio.sleep(1)
 
 plugins = [Notifications]
-commands = {'remind':{}}
+commands = {
+	'remind':{
+		'usage': '[me|@User] [message] in [time]',
+		'example': 'me to take out the trash in 3 hours and 30 minutes'
+	}
+}
