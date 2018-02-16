@@ -1,4 +1,6 @@
 {
 	"home_channel": 304959901376053248,
-	"command_prefix": "]"
+	"command_prefix": "]",
+	"default_location": "Auckland",
+	"openWeatherAPIKey": "redacted"
 }
