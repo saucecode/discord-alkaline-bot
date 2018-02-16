@@ -14,8 +14,10 @@ Included modules are:
  - `essentials` with commands `ping, whoami, whois, define, ud`
  - `notifications` with commands `remind, tell` for sending messages on delays and when users are active.
  - `backup` with commands `createbackup, grabbackup` see backup section.
+ - `voice` with commands for playing music over voice chat.
  - `sxde.reddit` with commands `rr, rrtop` for quickly retrieving random reddit posts.
  - `sxde.reactions` with commands 'reactionadd' as well as the detection for posting 'reactions'.
+ - `sxde.world` with commands 'weather'
 
 
 ### Backup Module
