@@ -1,9 +1,16 @@
 from .alkalineplugin import AlkalinePlugin
-import discord
+import discord, time
 
 from . import dictionarycom as dictionary
 from .sailortalk import sailor_word
 from . import postfix
+
+def is_float(f):
+	try:
+		float(f)
+		return True
+	except:
+		return False
 
 class Essentials(AlkalinePlugin):
 
@@ -65,6 +72,10 @@ class Essentials(AlkalinePlugin):
 		elif command == 'perms':
 			await message.channel.send('You have permissions: `%s`' % ' '.join(self.client.get_members_permissions(message.author.id)))
 
+		elif command == 'ctime':
+			if args and is_float(args):
+				await message.channel.send(time.ctime(float(args)))
+
 class EssentialsCalc(AlkalinePlugin):
 
 	def __init__(self, client):
@@ -106,6 +117,10 @@ commands = {
 	},
 	'perms':{
 		'desc': 'Prints your permissions.'
+	},
+	'ctime':{
+		'desc': 'Converts unix epoch number to a human-readable time string.',
+		'example': '1518765410.543'
 	},
 
 	'calc':{
