@@ -32,3 +32,15 @@ The backup is encrypted with salsa20 (`pip install salsa20`) using the bot's log
 The home_channel is the channel which the bot considers it's home. It is specified in `data/settings.json` with they key `home_channel` and value of any TextChannel ID.
 
 Plugins can specify which files they'd like to be backed up by setting a list `BACKUP_FILES`. When `createbackup` is called, the backup plugin will go through all loaded plugins, and save the files listed in these lists to the backup. See `modules/notifications.py`'s constructor for an example.
+
+### Core Commands
+
+These commands are part of the core code (not a plugin), their behavior is defined directly in discordbot.py, and they can only be run with the 'admin' permission (defined in the bot, not the server role). The core commands and their usages are as follows.
+
+ - `\reloadall` Reload all currently loaded modules.
+ - `\loadmodule [module name]` Attempts to load plugins from the specified module.
+ - `\reloadmodule [module name]` Attempts to reload an already loaded module.
+ - `\unloadmodule [module name]` Attempts to unload a loaded module (disabling its commands).
+ - `\modules` Prints a list of all the loaded modules and their plugins.
+
+Module names are relative to the modules directory. A `[module name]` like `sxde.world` represents `modules/sxde/world.py`. One like `essentials` represents `modules/essentials.py`. Remember that not every source file in the modules directory has plugins. Some of them are utilities, such as `sailortalk.py`, which is used by a veritable variety of plugin modules.
