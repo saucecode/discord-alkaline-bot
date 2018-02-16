@@ -1,6 +1,12 @@
 from ..alkalineplugin import AlkalinePlugin
 import discord, aiohttp, time, json
 
+def epoch_to_timestamp(when):
+	return time.strftime('%Y-%m-%d %H:%M', time.localtime(when))
+
+def epoch_to_24htime(when):
+	return time.strftime('%H:%M', time.localtime(when))
+
 class Weather(AlkalinePlugin):
 
 	def __init__(self, client):
@@ -36,7 +42,7 @@ class Weather(AlkalinePlugin):
 			if weather_message:
 				func = lambda x: weather_message.edit(content=x)
 
-			await func('{}, {}: {}. Temperature {} °C / {} K. Humidity {}%. Sunrise is at {} and sunset is at {}'.format( w['name'], w['sys']['country'], w['weather'][0]['description'], int(w['main']['temp']-273.15), w['main']['temp'], w['main']['humidity'], time.ctime(w['sys']['sunrise']).split(' ')[3], time.ctime(w['sys']['sunset']).split(' ')[3]
+			await func('{}, {}: {}. Temperature {} °C / {} K. Humidity {}%. Sunrise is at {} and sunset is at {}'.format( w['name'], w['sys']['country'], w['weather'][0]['description'], int(w['main']['temp']-273.15), int(w['main']['temp']), w['main']['humidity'], epoch_to_24htime(w['sys']['sunrise']), epoch_to_24htime(w['sys']['sunset'])
 			))
 
 		elif command == 'forecast' and len(args) == 0:
@@ -58,7 +64,7 @@ class Weather(AlkalinePlugin):
 				func = lambda x: forecast_message.edit(content=x)
 
 			def stringify_forecast(data):
-				return '{} {} Temperature {} °C / {} K. Humidity {}%'.format(time.ctime(data['dt']), data['weather'][0]['description'], int(data['main']['temp']-273.15), data['main']['temp'], data['main']['humidity'] )
+				return '{} {} Temperature {} °C / {} K. Humidity {}%'.format(epoch_to_timestamp(data['dt']), data['weather'][0]['description'], int(data['main']['temp']-273.15), int(data['main']['temp']), data['main']['humidity'] )
 
 			output = [stringify_forecast(x) for x in w['list']]
 
