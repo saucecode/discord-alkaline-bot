@@ -62,6 +62,8 @@ class Notifications(AlkalinePlugin):
 		self.version = '2.0'
 		self.author = 'Julian'
 
+		self.notifications = {'remind':[], 'tell':{}}
+
 		self.notifications_file = os.getcwd() + os.sep + 'data' + os.sep + 'notifications.json'
 
 		self.BACKUP_FILES = ['data' + os.sep + 'notifications.json']
@@ -86,22 +88,25 @@ class Notifications(AlkalinePlugin):
 		with open(self.notifications_file, 'r') as f:
 			self.notifications = json.load(f)
 
+		""" JSON does not accept integers as dict (object) keys. Transform the tell dictionary's keys from strings to ints using this transform. Alternative hacks are accepted. """
+		def tell_transform(v):
+			return {int(key):v[key] for key in v}
+
+		self.notifications['tell'] = tell_transform(self.notifications['tell'])
+
 	def save_notifications(self):
 		with open(self.notifications_file, 'w') as f:
 			json.dump(self.notifications, f)
 
 	async def on_message(self, message):
-		pass
+		if message.author.id in self.notifications['tell'] and len(self.notifications['tell'][message.author.id]) > 0:
+			for tell in self.notifications['tell'][message.author.id]:
+				await message.channel.send('<@%s> %s (from <@%s>)' % (message.author.id, tell['message'], tell['senderid']))
+			del self.notifications['tell'][message.author.id]
+			self.save_notifications()
 
 	async def on_command(self, message, command, args):
 		if command == 'remind':
-			'''seconds = int(args.split(' ')[0])
-			remind_message = args[len(str(seconds)):]
-			await message.channel.send('I\'ll remind you in %i seconds' % seconds)
-
-			self.notifications['remind'].append( {'message': remind_message, 'when':time.time() + seconds, 'chan':message.channel.id, 'target_user': message.author.id, 'from_user': message.author.id} )
-			self.save_notifications()'''
-
 			subject = args.split(' ')[0]
 
 			# determine subject:
@@ -154,6 +159,26 @@ class Notifications(AlkalinePlugin):
 
 			await message.channel.send('Ok, I\'ll remind %s in %s' % ('you' if subject == message.author else 'them', humanreadable_time(time_seconds)) )
 
+		elif command == 'tell':
+			target = args.split(' ')[0]
+			thing_to_tell = args[len(target) + 1:]
+
+			mat = re.match('<@.[0-9]+>', target)
+			member = None
+
+			if mat:
+				member = discord.utils.get(message.guild.members, id=int(target[2:-1].replace('!','')))
+			else:
+				member = discord.utils.find(lambda m: target.lower() in m.name.lower() or target.lower() in m.display_name.lower(), message.channel.guild.members)
+
+			if not member.id in self.notifications['tell']:
+				self.notifications['tell'][member.id] = []
+
+			self.notifications['tell'][member.id].append({'sent_at':time.time(), 'message':thing_to_tell, 'senderid':message.author.id})
+			self.save_notifications()
+
+			await message.channel.send('Ok, I\'ll tell %s that next time I see them.' % member.display_name)
+
 	async def background_task(self):
 		while 1:
 
@@ -175,5 +200,6 @@ commands = {
 	'remind':{
 		'usage': '[me|@User] [message] in [time]',
 		'example': 'me to take out the trash in 3 hours and 30 minutes'
-	}
+	},
+	'tell':{}
 }
