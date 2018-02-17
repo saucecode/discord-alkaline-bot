@@ -239,60 +239,51 @@ class VoiceManager(AlkalinePlugin):
 						player = discord.FFmpegPCMAudio(subprocess.PIPE, pipe=True)
 						req = self.http.request('GET', chosen_format['url'], preload_content=False)
 						filename = 'downloaded/{}-{}.webm'.format( self.sanitize_video_title(data['title']), data['id'] )
+						already_downloaded = os.path.exists(filename)
 
-						def wdiect(r,proc,fname):
-							f = open(fname, 'wb')
-							try:
-								while True:
-									chunk = r.read(8192*4)
-									if not chunk:
-										r.close()
-										print('STOPPED THREAD - END OF STREAM')
-										proc.stdin.close()
-										break
-									f.write(chunk) # FILE WRITE MUST GO FIRST!!
-									proc.stdin.write(chunk)
-							except BrokenPipeError:
-								print('STOPPING THREAD - BROKEN PIPE - CONTINUING DOWNLOAD')
+						if not already_downloaded:
+							def wdiect(r,proc,fname):
+								f = open(fname, 'wb')
+								try:
+									while True:
+										chunk = r.read(8192*4)
+										if not chunk:
+											r.close()
+											print('STOPPED THREAD - END OF STREAM')
+											proc.stdin.close()
+											break
+										f.write(chunk) # FILE WRITE MUST GO FIRST!!
+										proc.stdin.write(chunk)
+								except BrokenPipeError:
+									print('STOPPING THREAD - BROKEN PIPE - CONTINUING DOWNLOAD')
 
-								while True:
-									chunk = r.read(8192*4)
-									if not chunk:
-										break
-									f.write(chunk)
+									while True:
+										chunk = r.read(8192*4)
+										if not chunk:
+											break
+										f.write(chunk)
 
-								r.close()
-							finally:
-								f.close()
+									r.close()
+								finally:
+									f.close()
 
-						download_thread = threading.Thread(target=wdiect, args=(req,player._process,filename))
+							download_thread = threading.Thread(target=wdiect, args=(req,player._process,filename))
 
-						def after():
-							req.close()
-							#player.stdin.close()
+							def after():
+								req.close()
+								#player.stdin.close()
 
-						self.client.voice.play(
-							discord.PCMVolumeTransformer(player, volume=0.5), after=after
-						)
+							self.client.voice.play(
+								discord.PCMVolumeTransformer(player, volume=0.5), after=after
+							)
 
-						download_thread.start()
+							download_thread.start()
+						else:
+							self.client.voice.play(
+								discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(filename), volume=0.5)
+							)
+
 						self.queue.pop(0)
-
-						'''data = await self.client.loop.run_in_executor(self.executor, self.get_youtube_info, self.queue[0]['query'])
-
-						if 'entries' in data:
-							data = data['entries'][0]
-
-						chosen_format = [j for j in data['formats'] if j['format_id'] == '171'][0]
-
-						player = discord.FFmpegPCMAudio(chosen_format['url'])
-						print('playing',chosen_format['url'])
-
-						self.client.voice.play(
-							discord.PCMVolumeTransformer(player, volume=0.5)
-						)
-
-						self.queue.pop(0)'''
 
 			await asyncio.sleep(1)
 
