@@ -6,7 +6,7 @@ import json
 import os
 
 discord.opus.load_opus('libopus.so.0')
-COMMAND_PREFIX = ']'
+COMMAND_PREFIX = '\\'
 
 class AlkalineClient(discord.Client):
 
@@ -107,8 +107,8 @@ class AlkalineClient(discord.Client):
 
 	async def on_message(self, message):
 
-		# ignore messages from myself and from other bots
-		if message.author.id == self.user.id or message.author.bot:
+		# ignore messages from myself and from other bots and from private messages
+		if message.author.id == self.user.id or message.author.bot or not type(message.channel) == discord.TextChannel:
 			return
 
 		# triggers plugin on_message plugin functions
