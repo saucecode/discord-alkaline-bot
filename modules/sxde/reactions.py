@@ -49,11 +49,17 @@ class Reactions(AlkalinePlugin):
 
 			await message.channel.send('Added reaction. %s now has %i reactions.' % (reaction_name, len(self.reactions[reaction_name])))
 
+		elif command == 'reactions':
+			await message.channel.send(', '.join( [ name for name in self.reactions if len(self.reactions[name]) > 0 ] ))
+
 
 plugins = [Reactions]
 commands = {
 	'reactionadd': {
 		'usage': 'reactionadd [reaction name] [reaction]',
 		'desc':  'Saves the text or link [reaction] under [reaction name]'
+	},
+	'reactions':{
+		'desc': 'List all reactions.'
 	}
 }
