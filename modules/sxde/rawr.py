@@ -14,7 +14,7 @@ class RawrPlugin(AlkalinePlugin):
 
 	async def on_message(self, message : discord.Message):
 		if self.dad_feature and random.random() > 0.7:
-			if message.content[0] in ('I', 'i') and 5 < len(message.content) < 100:
+			if 5 < len(message.content) < 100 and message.content[0] in ('I', 'i'):
 				if message.content.lower().split(' ')[0] in ['i\'m', 'im']:
 					whoIsHe = ''
 					if '.' in message.content:
