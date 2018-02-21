@@ -23,14 +23,12 @@ class RollingMessage:
         message = await client.send_message(msg.channel, 'Requesting data...')
         links = await cls.fetch(url)
         instance = cls(client, message, url, links)
-        await instance.fetch(url)
         await instance.update_message()
         return instance
 
     @property
     def item_text(self):
-        item = self.links[self.index].get('data')
-        return '{item[title]} | {item[url]}'.format(item=item)
+        return '{item[title]} | {item[url]}'.format(item=self.links[self.index].get('data'))
 
     async def update_message(self):
         await self.fetch(self.url)
@@ -58,16 +56,13 @@ class RollingMessage:
     async def fetch(url):
         now = time.time()
         cached_item = REDDIT_CACHE.get(url, None)
-        if cached_item:
-            expiration = cached_item['expires']
-            if now < expiration:
-                print('Cache hit: ', url)
-                return cached_item['content']
+        if cached_item and now < cached_item['expiration']:
+            print('Cache hit: ', url)
+            return cached_item['content']
         print('Cache miss: ', url)
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers={'User-Agent': 'Discord-Alkaline-Bot'}) as resp:
+        async with aiohttp.ClientSession() as sesh, sesh.get(url, headers={'User-Agent': 'Discord-Alkaline-Bot'}) as resp:
                 dat = await resp.json()
-                REDDIT_CACHE[url] = dict(expires=now+EXPIRY_TIME, content=dat['data']['children'])
+                REDDIT_CACHE[url] = dict(expiration=now+EXPIRY_TIME, content=dat['data']['children'])
                 return REDDIT_CACHE[url]['content']
 
     def __getattr__(self, item):
