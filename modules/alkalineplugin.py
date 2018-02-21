@@ -10,3 +10,6 @@ class AlkalinePlugin:
 
 	async def on_message_edit(self, before : discord.Message, after : discord.Message):
 		pass
+
+	async def on_reaction_add(self, reaction : discord.Reaction, user : discord.User):
+		pass

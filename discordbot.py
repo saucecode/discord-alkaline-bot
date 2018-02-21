@@ -105,6 +105,16 @@ class AlkalineClient(discord.Client):
 			for plugin in self.plugins[mod]:
 				await plugin.on_message_edit(before, after)
 
+	async def on_reaction_add(self, reaction, user):
+		# ignore messages from myself and from other bots and from private messages
+		if user.id == self.user.id or user.bot or not type(reaction.message.channel) == discord.TextChannel:
+			return
+
+		# triggers plugin on_message plugin functions
+		for mod in self.plugins:
+			for plugin in self.plugins[mod]:
+				await plugin.on_reaction_add(reaction, user)
+
 	async def on_message(self, message):
 
 		# ignore messages from myself and from other bots and from private messages
