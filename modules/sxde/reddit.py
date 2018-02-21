@@ -39,25 +39,12 @@ class Reddit(AlkalinePlugin):
 		self.author = 'Julian'
 
 	async def on_command(self, message, command, args):
-		if command == 'rr':
+		if command in ['rr', 'rrtop']:
 			subreddit = args.split(' ')[0]
 			url = 'https://reddit.com/r/' + subreddit + '/.json?limit=100'
 
-			rolling_message = await message.channel.send('Retrieving data...') # create rolling-message target
-			data = await self.request_reddit_data(url)
-
-			# add buttons BEFORE adding to list
-			await rolling_message.add_reaction(self.left_arrow)
-			await rolling_message.add_reaction(self.twisted_arrows)
-			await rolling_message.add_reaction(self.right_arrow)
-
-			# add to list -- the message roll can now be triggered by on_reaction_add
-			self.rolling_messages[rolling_message.id] = RollingMessage(rolling_message, data['data']['children'], lambda i:'{} | {}'.format(i['data']['title'], i['data']['url']))
-			await self.rolling_messages[rolling_message.id].roll_to(0)
-
-		if command == 'rrtop':
-			subreddit = args.split(' ')[0]
-			url = 'https://reddit.com/r/' + subreddit + '/top/.json?t=all&limit=100'
+			if command == 'rrtop':
+				url = 'https://reddit.com/r/' + subreddit + '/top/.json?t=all&limit=100'
 
 			rolling_message = await message.channel.send('Retrieving data...') # create rolling-message target
 			data = await self.request_reddit_data(url)
@@ -70,9 +57,6 @@ class Reddit(AlkalinePlugin):
 			# add to list -- the message roll can now be triggered by on_reaction_add
 			self.rolling_messages[rolling_message.id] = RollingMessage(rolling_message, data['data']['children'], lambda i:'{} | {}'.format(i['data']['title'], i['data']['url']))
 			await self.rolling_messages[rolling_message.id].roll_to(0)
-
-		elif command == 'rrdebug':
-			await message.channel.send('```\n{}\n```'.format(json.dumps(self.cached, indent=4)))
 
 	async def on_reaction_add(self, reaction, user):
 		if reaction.message.id in self.rolling_messages:
@@ -111,6 +95,5 @@ commands = {
 	'rrtop':{
 		'usage': '[subreddit]',
 		'desc':  'Retrieve a random all-time best reddit post from [subreddit].'
-	},
-	'rrdebug':{}
+	}
 }
