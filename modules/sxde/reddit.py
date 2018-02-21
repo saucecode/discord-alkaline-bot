@@ -31,7 +31,7 @@ class RollingMessage:
         return '{item[title]} | {item[url]}'.format(item=self.links[self.index].get('data'))
 
     async def update_message(self):
-        await self.fetch(self.url)
+        self.links = await self.fetch(self.url)
         await self.client.edit_message(self._message, '{}/{} {}'.format(self.index + 1, len(self.links), self.item_text))
         await self.set_reactions()
 
