@@ -5,7 +5,7 @@
 import string, sys
 import cmath, math
 import inspect
-import readline
+# import readline
 
 def countFunctionArguments(func):
 	try:
