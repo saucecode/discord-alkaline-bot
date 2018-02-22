@@ -20,7 +20,7 @@ class RollingMessage:
     async def from_command(cls, client, msg, command, subreddit):
         endpoint = 'top/.json?t=all&limit=100' if command == 'rrtop' else '.json?limit=100'
         url = "https://reddit.com/r/{subreddit}/{endpoint}".format(subreddit=subreddit, endpoint=endpoint)
-        message = await client.send_message(msg.channel, 'Requesting data...')
+        message = await msg.channel.send('Requesting data...')
         links = await cls.fetch(url)
         instance = cls(client, message, url, links)
         await instance.update_message()
@@ -32,7 +32,7 @@ class RollingMessage:
 
     async def update_message(self):
         self.links = await self.fetch(self.url)
-        await self.client.edit_message(self._message, '{}/{} {}'.format(self.index + 1, len(self.links), self.item_text))
+        await self._message.edit('{}/{} {}'.format(self.index + 1, len(self.links), self.item_text))
         await self.set_reactions()
 
     async def roll_next(self):
@@ -48,9 +48,9 @@ class RollingMessage:
         await self.update_message()
 
     async def set_reactions(self):
-        await self.client.clear_reactions(self._message)
+        await self._message.clear_reactions()
         for emoji in [LEFT_ARROW, TWISTED_ARROWS, RIGHT_ARROW]:
-            await self.client.add_reaction(self._message, emoji)
+            await self._message.add_reaction(emoji)
 
     @staticmethod
     async def fetch(url):
