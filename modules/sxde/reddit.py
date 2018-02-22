@@ -32,7 +32,7 @@ class RollingMessage:
 
 	async def update_message(self):
 		self.links = await self.fetch(self.url)
-		await self._message.edit('{}/{} {}'.format(self.index + 1, len(self.links), self.item_text))
+		await self._message.edit(content='{}/{} {}'.format(self.index + 1, len(self.links), self.item_text))
 		await self.set_reactions()
 
 	async def roll_next(self):
@@ -48,7 +48,6 @@ class RollingMessage:
 		await self.update_message()
 
 	async def set_reactions(self):
-		await self._message.clear_reactions()
 		for emoji in [LEFT_ARROW, TWISTED_ARROWS, RIGHT_ARROW]:
 			await self._message.add_reaction(emoji)
 
