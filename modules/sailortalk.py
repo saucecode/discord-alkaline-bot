@@ -14,3 +14,18 @@ def sailor_word():
 		return '%s%s' % (f, s)
 	else:
 		return 'you %s' % random.choice(__singles)
+
+def filthy_verb():
+	return random.choice([
+		'fucking destroyed',
+		'publicly humiliated',
+		'decimated',
+		'shat on',
+		'butt fucked',
+		'shamed',
+		'induced vomiting in',
+		'stolen the boyfriend of',
+		'stolen the girlfriend of',
+		'completely fucking owned',
+		'pwned'
+	])
