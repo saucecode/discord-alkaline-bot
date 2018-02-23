@@ -183,17 +183,30 @@ class TwentySquaresGame:
 			await self.status_message.edit(content='<@{.id}> has rolled **{}** and **cannot move!**'.format(self.turn, self.amount))
 			await self.next_turn()
 		else:
-			if len([p for p in (self.redPieces if self.turn == self.red else self.bluePieces) if p.square == None]) > 0:
+			if self.can_move_onto_board():
 				await self.status_message.edit(content='<@{.id}> has rolled **{}** and has {} possible moves. Select a piece to move or move a piece onto the board.'.format(self.turn, self.amount, possible_moves))
 				await self.status_message.add_reaction(DIGIT[0])
 			else:
 				await self.status_message.edit(content='<@{.id}> has rolled **{}** and has {} possible moves. Select a piece to move.'.format(self.turn, self.amount, possible_moves))
 
 			for piece in (self.redPieces if self.turn == self.red else self.bluePieces):
-				if piece.square is not None:
+				if piece.square is not None and piece.can_advance(self.amount):
 					await self.status_message.add_reaction(DIGIT[piece.index])
 
 			self.status = 'waiting for selection'
+
+	def can_move_onto_board(self):
+		if len([m for m in (self.redPieces if self.turn == self.red else self.bluePieces) if m.square == None]) == 0:
+			return False
+
+		start = self.redSpawnSquare if self.turn == self.red else self.blueSpawnSquare
+		for i in range(self.amount-1):
+			start = start.next
+
+		if start.marker is not None:
+			return False
+
+		return True
 
 	async def move_onto_board(self):
 		marker = [m for m in (self.redPieces if self.turn == self.red else self.bluePieces) if m.square == None][0]
