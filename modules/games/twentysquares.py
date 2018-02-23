@@ -1,7 +1,9 @@
 from ..alkalineplugin import AlkalinePlugin
 from ..sailortalk import filthy_verb
-import discord, io, time, random
+import discord, io, time, random, os
 from PIL import Image, ImageDraw, ImageFont
+
+random.seed(os.urandom(100))
 
 BOARD_SIZE = 400,300
 CHECKMARK = "\u2705"
@@ -84,10 +86,10 @@ class TwentySquaresGame:
 		self.status_message = None
 		self.amount = 0 # the last rolled amount
 
-		self.redPieces = [Marker('red', i+1) for i in range(1)]
-		self.bluePieces = [Marker('blue', i+1) for i in range(1)]
-		self.redPoints = 6
-		self.bluePoints = 6
+		self.redPieces = [Marker('red', i+1) for i in range(7)]
+		self.bluePieces = [Marker('blue', i+1) for i in range(7)]
+		self.redPoints = 0
+		self.bluePoints = 0
 		self.POINTS_LIMIT = 7
 
 		# GENERATE A GRAPH OF SQUARES
@@ -127,12 +129,6 @@ class TwentySquaresGame:
 			act = act.next
 		act.special = True
 		act.next = topSquare
-
-		# TODO DEBUG
-		self.redPieces[0].square = topSquare.next.next.next.next
-		topSquare.next.next.next.next.marker = self.redPieces[0]
-		self.bluePieces[0].square = topSquare.next.next.next.next.next
-		topSquare.next.next.next.next.next.marker = self.bluePieces[0]
 
 		self.redSpawnSquare = redSpawnSquare
 		self.blueSpawnSquare = blueSpawnSquare
