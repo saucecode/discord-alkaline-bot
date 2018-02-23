@@ -9,6 +9,7 @@ class Backup(AlkalinePlugin):
 		self.client = client
 
 		self.BACKUP_FILES = ['data/settings.json', 'data/permissions.json']
+		self.backup_key = self.client.settings['backup_key']
 
 		self.name = 'BackupOperator'
 		self.version = '0.5'
@@ -77,8 +78,7 @@ class Backup(AlkalinePlugin):
 
 	def encrypt_bytes(self, data):
 		from salsa20 import Salsa20_xor as salsa20
-		with open('secrettoken', 'rb') as f:
-			key = hashlib.sha256(f.read()).digest()
+		key = hashlib.sha256(self.backup_key.encode('utf-8')).digest()
 		IV = b'0' * 8
 		return salsa20(data, IV, key)
 
