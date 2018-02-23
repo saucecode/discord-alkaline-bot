@@ -118,13 +118,14 @@ class AlkalineClient(discord.Client):
 	async def on_message(self, message):
 
 		# ignore messages from myself and from other bots and from private messages
-		if message.author.id == self.user.id or message.author.bot or not type(message.channel) == discord.TextChannel:
+		if message.author.id == self.user.id or message.author.bot:
 			return
 
 		# triggers plugin on_message plugin functions
-		for mod in self.plugins:
-			for plugin in self.plugins[mod]:
-				await plugin.on_message(message)
+		if type(message.channel) == discord.TextChannel:
+			for mod in self.plugins:
+				for plugin in self.plugins[mod]:
+					await plugin.on_message(message)
 
 		# detects command attempts and triggers on_command plugin functions
 		if message.content.startswith(COMMAND_PREFIX) and len(message.content) > 1 and message.author.id != self.user.id:
@@ -135,14 +136,17 @@ class AlkalineClient(discord.Client):
 					# execute command only if user has permission or if command requires no permissions
 					if not 'perms' in mod.commands[command] or self.get_member_has_any_permissions(mod.commands[command]['perms'], message.author.id):
 						for plugin in self.plugins[mod]:
-							await plugin.on_command(message, command, message.content[1 + len(self.COMMAND_PREFIX) + len(command):])
+							if type(message.channel) == discord.DMChannel:
+								await plugin.on_pm_command(message, command, message.content[1 + len(self.COMMAND_PREFIX) + len(command):])
+							elif type(message.channel) == discord.TextChannel:
+								await plugin.on_command(message, command, message.content[1 + len(self.COMMAND_PREFIX) + len(command):])
 					else:
 						await message.channel.send('Permission denied.')
 
 
 		# HARD CODED FUNCTIONS
 
-		if message.content.startswith(self.COMMAND_PREFIX):
+		if message.content.startswith(self.COMMAND_PREFIX) and type(message.channel) == discord.TextChannel:
 			can_core_commands = self.get_member_has_any_permissions(['admin'], message.author.id)
 			if message.content == COMMAND_PREFIX + 'modules' and can_core_commands:
 				await message.channel.send( "```%s```" % '\n'.join([k.__name__ + '\n\t' + ' '.join([a.__class__.__name__ for a in self.plugins[k]]) for k in self.plugins]) )

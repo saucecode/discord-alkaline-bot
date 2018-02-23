@@ -13,3 +13,6 @@ class AlkalinePlugin:
 
 	async def on_reaction_add(self, reaction : discord.Reaction, user : discord.User):
 		pass
+
+	async def on_pm_command(self, message: discord.Message, command : str, args: str):
+		pass
