@@ -1,4 +1,5 @@
 from ..alkalineplugin import AlkalinePlugin
+from ..sailortalk import filthy_verb
 import discord, io, time, random
 from PIL import Image, ImageDraw, ImageFont
 
@@ -8,12 +9,24 @@ CROSSMARK = "\u274E"
 ROLL = "\U0001F504"
 DIGIT = ["\U00000030\U000020e3", "\U00000031\U000020e3", "\U00000032\U000020e3", "\U00000033\U000020e3", "\U00000034\U000020e3", "\U00000035\U000020e3", "\U00000036\U000020e3", "\U00000037\U000020e3", "\U00000038\U000020e3", "\U00000039\U000020e3"]
 
+"""
+
+	WARNING: HERE BE DRAGONS
+	This was written in one sitting with the goal of getting it to work.
+	It is not pretty, nor has anything resembling intelligent design.
+	It works, and I'm not sure how.
+
+	Redesigns welcome.
+
+"""
+
 class Square:
 	def __init__(self, next=None):
 		self.next = next
 		self.last = False
 		self.special = False
 		self.marker = None
+		self.neutral = False
 
 class Marker:
 	def __init__(self, color, index):
@@ -28,17 +41,27 @@ class Marker:
 		prev_target = None
 		for i in range(spaces):
 			prev_target = target
+			if prev_target == None:
+				break
 			target = target.next
 
+
+			if type(target) == list:
+				target = target[0] if self.color == 'red' else target[1]
+
+		if target == None and prev_target == None:
+			print('can\'t off the board unless you hit an exact')
+			return False
+
 		if target == None:
-			if prev_target is not None and prev_target.special:
+			if prev_target is not None and prev_target.last:
 				return True
 			return False
 
 		if target.marker == None:
 			return True
 
-		if not target.marker.color == self.color:
+		if not target.marker.color == self.color and not target.neutral:
 			return True
 
 		return False
@@ -49,6 +72,9 @@ class TwentySquaresGame:
 		self.parent = parent
 		self.client = parent.client
 
+		self.last_board_message = None
+		self.last_status_message = None
+
 		self.red = playerRed
 		self.blue = playerBlue
 		self.chan = chan
@@ -58,8 +84,11 @@ class TwentySquaresGame:
 		self.status_message = None
 		self.amount = 0 # the last rolled amount
 
-		self.redPieces = [Marker('red', i+1) for i in range(7)]
-		self.bluePieces = [Marker('blue', i+1) for i in range(7)]
+		self.redPieces = [Marker('red', i+1) for i in range(1)]
+		self.bluePieces = [Marker('blue', i+1) for i in range(1)]
+		self.redPoints = 6
+		self.bluePoints = 6
+		self.POINTS_LIMIT = 7
 
 		# GENERATE A GRAPH OF SQUARES
 		topSquare = Square()
@@ -69,6 +98,7 @@ class TwentySquaresGame:
 			act = act.next
 		bottomSquare = act
 		topSquare.next.next.next.special = True
+		topSquare.next.next.next.neutral = True
 
 		redBottomSquare = Square()
 		redBottomSquare.next = Square()
@@ -98,6 +128,11 @@ class TwentySquaresGame:
 		act.special = True
 		act.next = topSquare
 
+		# TODO DEBUG
+		self.redPieces[0].square = topSquare.next.next.next.next
+		topSquare.next.next.next.next.marker = self.redPieces[0]
+		self.bluePieces[0].square = topSquare.next.next.next.next.next
+		topSquare.next.next.next.next.next.marker = self.bluePieces[0]
 
 		self.redSpawnSquare = redSpawnSquare
 		self.blueSpawnSquare = blueSpawnSquare
@@ -130,9 +165,22 @@ class TwentySquaresGame:
 			r = r.next
 			b = b.next
 
-		for i in range(6,8):
+		r = self.redBottomSquare
+		b = self.blueBottomSquare
+		for i in range(6,8)[::-1]:
 			draw.rectangle( [4 + i*48, 300-16-48-48-48, 4 + i*48 + 48, 300-16-48-48], fill='black', outline='blue' )
 			draw.rectangle( [4 + i*48, 300-16-48, 4 + i*48 + 48, 300-16], fill='black', outline='red' )
+
+			if b.marker is not None:
+				draw.ellipse( [4 + i*48+16, 300-16-48-48-48+16, 4 + i*48 + 48-16, 300-16-48-48-16], outline='white', fill='blue' )
+				draw.text( (4 + i*48+16+4, 300-16-48-48-48+16+4), str(b.marker.index) )
+
+			if r.marker is not None:
+				draw.ellipse( [4 + i*48+16, 300-16-48+16, 4 + i*48 + 48-16, 300-16-16], outline='white', fill='red' )
+				draw.text( (4 + i*48+16+4, 300-16-48+16+4), str(r.marker.index) )
+
+			r = r.next
+			b = b.next
 
 		act = self.topSquare
 		for i in range(8):
@@ -153,8 +201,11 @@ class TwentySquaresGame:
 		image_bytes = io.BytesIO()
 		im.save(image_bytes, format='png')
 
-		await self.chan.send(
-			'Game between <@{}> and <@{}>'.format(self.red.id, self.blue.id),
+		if self.last_board_message:
+			await self.last_board_message.delete()
+
+		self.last_board_message = await self.chan.send(
+			'Game between <@{}> ({}) and <@{}> ({})'.format(self.red.id, self.redPoints, self.blue.id, self.bluePoints),
 			file=discord.File( image_bytes.getbuffer(), filename='{}.png'.format(int(time.time())) )
 		)
 
@@ -163,13 +214,27 @@ class TwentySquaresGame:
 		self.status = 'waiting for roll'
 		self.status_message = await self.chan.send('<@{.id}> rolls first. Click to roll.'.format(self.turn))
 		await self.status_message.add_reaction( ROLL )
+		self.last_status_message = self.status_message
+
+	def check_win_condition(self):
+		return self.redPoints == self.POINTS_LIMIT or self.bluePoints == self.POINTS_LIMIT
 
 	async def next_turn(self):
-		self.turn = self.red if self.turn.id == self.blue.id else self.blue
-		self.status = 'waiting for roll'
-		await self.populate_board()
-		self.status_message = await self.chan.send('<@{.id}>\'s turn to roll. Click to roll.'.format(self.turn))
-		await self.status_message.add_reaction( ROLL )
+		if self.check_win_condition():
+			winner = self.red if self.redPoints == self.POINTS_LIMIT else self.blue
+			await self.populate_board()
+			await self.chan.send('**WINNER!** <@{.id}> has {} <@{.id}> by winning this 4500 year old game.'.format(winner, filthy_verb(), self.red if winner == self.blue else self.blue))
+
+			self.parent.games.remove(self)
+		else:
+			self.turn = self.red if self.turn.id == self.blue.id else self.blue
+			self.status = 'waiting for roll'
+			await self.populate_board()
+			if self.last_status_message:
+				await self.last_status_message.delete()
+			self.status_message = await self.chan.send('<@{.id}>\'s turn to roll. Click to roll.'.format(self.turn))
+			await self.status_message.add_reaction( ROLL )
+			self.last_status_message = self.status_message
 
 	async def do_roll(self):
 		if not self.status == 'waiting for roll': return
@@ -180,7 +245,8 @@ class TwentySquaresGame:
 		print('A roll of {} has {} possible moves'.format(self.amount, possible_moves))
 
 		if possible_moves == 0:
-			await self.status_message.edit(content='<@{.id}> has rolled **{}** and **cannot move!**'.format(self.turn, self.amount))
+			await self.status_message.edit(content='<@{.id}> has rolled **{}** and **cannot move!**'.format(self.turn, self.amount), delete_after=3.0)
+			self.last_status_message = None
 			await self.next_turn()
 		else:
 			if self.can_move_onto_board():
@@ -215,20 +281,50 @@ class TwentySquaresGame:
 			marker.square = marker.square.next
 		marker.square.marker = marker
 
+		if marker.square.special:
+			print('ROSETTE!')
+			self.turn = self.red if self.turn == self.blue else self.blue
+
 	async def attempt_advance(self, pieceNumber):
 		markers = [m for m in (self.redPieces if self.turn == self.red else self.bluePieces) if m.index == pieceNumber]
 		assert len(markers) == 1
 		marker = markers[0]
 
 		position = marker.square
+		last_position = position
 		for i in range(self.amount):
+			if last_position == None:
+				break
+			last_position = position
+
 			position = position.next
-			if position == None:
+			if position == None and last_position == None:
 				print('MOVE IMPOSSIBLE: Goes off the board')
 				return
 
+			if type(position) == list:
+				position = position[0] if self.turn == self.red else position[1]
+
+		if position == None and not last_position == None and last_position.last:
+			marker.square.marker = None
+			marker.square = None
+
+			if self.turn == self.red:
+				self.redPieces.remove(marker)
+				self.redPoints += 1
+			elif self.turn == self.blue:
+				self.bluePieces.remove(marker)
+				self.bluePoints += 1
+
+			print('PIECE OFF THE BOARD')
+
+			return
+
 		# knock off enemy piece
 		if position.marker is not None and position.marker.color == ('red' if self.turn == self.blue else 'blue'):
+			if position.neutral:
+				print('MOVE IMPOSSIBLE: Cannot move onto the neutral tile')
+				return
 			position.marker.square = None
 
 		if position.marker is not None and position.marker.color == ('red' if self.turn == self.red else 'blue'):
@@ -238,6 +334,10 @@ class TwentySquaresGame:
 		position.marker = marker
 		marker.square.marker = None
 		marker.square = position
+
+		if marker.square.special:
+			print('ROSETTE!')
+			self.turn = self.red if self.turn == self.blue else self.blue
 
 
 
