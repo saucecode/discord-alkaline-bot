@@ -29,7 +29,7 @@ class VoiceManager(AlkalinePlugin):
 		self.playlists = {}
 		self.load_playlists()
 
-		self.audio_format_code = '171'
+		self.audio_format_codes = ['171', '43']
 
 		self.name = 'VoiceManager'
 		self.version = '0.3'
@@ -220,6 +220,9 @@ class VoiceManager(AlkalinePlugin):
 	async def background_task(self):
 		while 1:
 
+			if not self.client.voice:
+				continue
+
 			if len(self.queue) > 0:
 				if not self.client.voice.is_playing():
 					if self.queue[0]['type'] == 'file':
@@ -229,12 +232,23 @@ class VoiceManager(AlkalinePlugin):
 						self.queue.pop(0)
 
 					elif self.queue[0]['type'] == 'query':
-						data = await self.client.loop.run_in_executor(self.executor, self.get_youtube_info, self.queue[0]['query'])
+						try:
+							data = await self.client.loop.run_in_executor(self.executor, self.get_youtube_info, self.queue[0]['query'])
+						except youtube_dl.utils.DownloadError:
+							print('Failed to download', self.queue[0])
+							self.queue.pop(0)
+							self.queue.insert(0, {'type':'file', 'filename':'data/error2.wav'})
+							continue
 
 						if 'entries' in data:
 							data = data['entries'][0]
 
-						chosen_format = [j for j in data['formats'] if j['format_id'] == '171'][0]
+						available_formats = [j for j in data['formats'] if j['format_id'] in self.audio_format_codes]
+						if len(available_formats) == 0:
+							self.queue.pop(0)
+							self.queue.insert(0, {'type':'file', 'filename':'data/error2.wav'})
+							continue
+						chosen_format = available_formats[0]
 
 						player = discord.FFmpegPCMAudio(subprocess.PIPE, pipe=True)
 						req = self.http.request('GET', chosen_format['url'], preload_content=False)
