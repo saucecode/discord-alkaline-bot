@@ -1,6 +1,7 @@
 {
 	"home_channel": 304959901376053248,
-	"command_prefix": "]",
+	"command_prefix": "\\",
 	"default_location": 2193734,
-	"openWeatherAPIKey": "redacted"
+	"openWeatherAPIKey": "redacted",
+	"backup_key": "redacted"
 }
