@@ -9,7 +9,7 @@ BOARD_SIZE = 400,300
 CHECKMARK = "\u2705"
 CROSSMARK = "\u274E"
 ROLL = "\U0001F504"
-DIGIT = ["\U00000030\U000020e3", "\U00000031\U000020e3", "\U00000032\U000020e3", "\U00000033\U000020e3", "\U00000034\U000020e3", "\U00000035\U000020e3", "\U00000036\U000020e3", "\U00000037\U000020e3", "\U00000038\U000020e3", "\U00000039\U000020e3"]
+DIGIT = [" \U00002b50", "\U00000031\U000020e3", "\U00000032\U000020e3", "\U00000033\U000020e3", "\U00000034\U000020e3", "\U00000035\U000020e3", "\U00000036\U000020e3", "\U00000037\U000020e3", "\U00000038\U000020e3", "\U00000039\U000020e3"]
 
 """
 
@@ -388,8 +388,12 @@ class TwentySquares(AlkalinePlugin):
 		self.author = 'Julian'
 
 	async def on_command(self, message: discord.Message, command : str, args : str):
-		if command == 'ts':
-			if not len(message.mentions) == 1:
+		if command == '20squares':
+			if args == 'rules':
+				with open('data/20squares.png','rb') as f:
+					await message.channel.send('''The Royal Game of Ur (aka Twenty Squares) is a 2 player (red vs blue) race game.\n\nYou have seven pieces, and you must get them all the way to the end.\nYou can knock off enemy pieces if you land on them, unless they're on a yellow square. Landing on a yellow gets you another turn.\nOnly one piece may be on a square at a time.\nThe roll is equivalent to flipping four coins and counting the heads.\n\nTo challenge someone, type `\\20squares @someone`''', file=discord.File(f))
+				return
+			elif not len(message.mentions) == 1:
 				await message.channel.send('You must @highlight who you wish to challenge.')
 				return
 
@@ -437,7 +441,7 @@ class TwentySquares(AlkalinePlugin):
 
 plugins = [TwentySquares]
 commands = {
-	'ts': {
+	'20squares': {
 		'usage': '@player1',
 		'desc':  'Challenges another player to a game of Ur.',
 		'example': '@Marco'
