@@ -4,7 +4,7 @@
 
 import string, sys
 import cmath, math
-import inspect
+import inspect, platform
 if platform.system() in ['Linux', 'Darwin']:
 	import readline
 
