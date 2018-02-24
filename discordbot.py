@@ -83,10 +83,10 @@ class AlkalineClient(discord.Client):
 		try:
 			loaded_module = importlib.import_module('modules.%s' % (module_identifier,))
 		except Exception as err:
-			print(' failed:', err.msg)
+			print(' failed.')
 			traceback.print_exc()
 			print()
-			return err.msg
+			return False
 
 		for klass in loaded_module.plugins:
 			if not loaded_module in self.plugins:
@@ -141,7 +141,11 @@ class AlkalineClient(discord.Client):
 							if type(message.channel) == discord.DMChannel:
 								await plugin.on_pm_command(message, command, message.content[1 + len(self.COMMAND_PREFIX) + len(command):])
 							elif type(message.channel) == discord.TextChannel:
-								await plugin.on_command(message, command, message.content[1 + len(self.COMMAND_PREFIX) + len(command):])
+
+								# checks if the server is not in the whitelist, or if it is allowed to use a module -- see README.md.
+								if not str(message.guild.id) in self.settings['per-server-plugin-whitelist'] \
+								   or mod.__name__[8:] in self.settings['per-server-plugin-whitelist'][str(message.guild.id)]:
+									await plugin.on_command(message, command, message.content[1 + len(self.COMMAND_PREFIX) + len(command):])
 					else:
 						await message.channel.send('Permission denied.')
 

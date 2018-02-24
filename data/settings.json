@@ -3,5 +3,9 @@
 	"command_prefix": "\\",
 	"default_location": 2193734,
 	"openWeatherAPIKey": "redacted",
-	"backup_key": "redacted"
+	"backup_key": "redacted",
+
+	"per-server-plugin-whitelist": {
+		"417059418010812416": ["games.twentysquares", "sxde.reddit"]
+	}
 }
