@@ -5,7 +5,8 @@
 import string, sys
 import cmath, math
 import inspect
-import readline
+if platform.system() in ['Linux', 'Darwin']:
+	import readline
 
 def countFunctionArguments(func):
 	try:

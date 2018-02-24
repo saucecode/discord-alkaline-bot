@@ -4,8 +4,10 @@ import importlib
 import traceback
 import json
 import os
+import platform
 
-discord.opus.load_opus('libopus.so.0')
+if platform.system() in ['Linux']:
+	discord.opus.load_opus('libopus.so.0')
 COMMAND_PREFIX = '\\'
 
 class AlkalineClient(discord.Client):
