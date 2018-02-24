@@ -44,6 +44,9 @@ class VoiceManager(AlkalinePlugin):
 		task.alkaline_identifier = self.name
 
 	def load_playlists(self):
+		if not os.path.exists('downloaded/'):
+			os.mkdir('downloaded/')
+		
 		if not os.path.exists('data/playlists.json'):
 			self.save_playlists()
 
@@ -221,6 +224,7 @@ class VoiceManager(AlkalinePlugin):
 		while 1:
 
 			if not self.client.voice:
+				await asyncio.sleep(1)
 				continue
 
 			if len(self.queue) > 0:
