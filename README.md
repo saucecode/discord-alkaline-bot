@@ -58,7 +58,8 @@ The `home_channel` and `backup_key` keys are used by the backup module and are o
 
 `openWeatherAPIKey` is an API key used by the weather module. The weather module uses (Open Weather Map)[http://openweathermap.org/] as its source, and requires a free account to get an API key. `default_location` is also specific to the weather command, and all weather queries are made for that location. 2193734 is the key for Auckland, New Zealand, which is where my server's users are based. Try [here for a full list](http://openweathermap.org/help/city_list.txt).
 
-```{
+```
+{
 	"home_channel": 304959901376053248,
 	"command_prefix": "\\",
 	"default_location": 2193734,
@@ -68,7 +69,8 @@ The `home_channel` and `backup_key` keys are used by the backup module and are o
 	"per-server-plugin-whitelist": {
 		"417059418010812416": ["games.twentysquares", "sxde.reddit"]
 	}
-}```
+}
+```
 
 
 ### Backup Module
