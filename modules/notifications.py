@@ -116,10 +116,8 @@ class Notifications(AlkalinePlugin):
 				mat = re.match('<@.[0-9]+>', subject)
 
 				if mat:
-					print(subject[2:-1].replace('!',''), 'ONE')
 					subject = discord.utils.get(message.guild.members, id=int(subject[2:-1].replace('!','')))
 				else:
-					print(subject, [m.display_name for m in message.guild.members], 'TWO')
 					subject = discord.utils.find(lambda m: subject.lower() in m.name.lower() or subject.lower() in m.display_name.lower(), message.guild.members)
 
 			if type(subject) == str:
