@@ -59,7 +59,7 @@ class Notifications(AlkalinePlugin):
 		self.client = client
 
 		self.name = 'Notifications'
-		self.version = '2.0'
+		self.version = '0.9'
 		self.author = 'Julian'
 
 		self.notifications = {'remind':[], 'tell':{}}
