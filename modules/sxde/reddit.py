@@ -114,7 +114,7 @@ class Reddit(AlkalinePlugin):
 
 	async def process_reddit_video(self, video_source_fname, audio_source_fname):
 		output_fname = video_source_fname.split('.')[0] + '.mp4'
-		command = 'ffmpeg -i downloaded/tmp/{} -i downloaded/tmp/{} -s 400x224 -acodec copy -threads {} -y downloaded/tmp/{}'.format(video_source_fname, audio_source_fname, FFMPEG_THREADS, output_fname)
+		command = 'ffmpeg -loglevel error -i downloaded/tmp/{} -i downloaded/tmp/{} -s 400x224 -acodec copy -threads {} -fs 8M -y downloaded/tmp/{}'.format(video_source_fname, audio_source_fname, FFMPEG_THREADS, output_fname)
 
 		def processor(cmd):
 			subprocess.check_output(cmd.split(' '))
@@ -124,7 +124,6 @@ class Reddit(AlkalinePlugin):
 		return output_fname
 
 	async def on_message(self, message):
-		if not message.author.name == 'saucecode': return
 		if not 'reddit.com/' in message.content:
 			return
 
@@ -140,12 +139,17 @@ class Reddit(AlkalinePlugin):
 			if not post['domain'] == 'v.redd.it':
 				return
 
-			status = await message.channel.send('Downloading... ')
-
 			video_url = post['secure_media']['reddit_video']['fallback_url']
 			audio_url = 'https://v.redd.it/{}/audio'.format(video_url.split('/')[-2])
 
+			if os.path.exists('downloaded/tmp/{}.mp4'.format(video_url.split('/')[-2])):
+				with open('downloaded/tmp/{}.mp4'.format(video_url.split('/')[-2]), 'rb') as f:
+					await message.channel.send(file=discord.File(fp=f, filename=video_url.split('/')[-2]+'.mp4'))
+
+				return
+
 			# download the original sources
+			status = await message.channel.send('Downloading... ')
 			video_source_fname, audio_source_fname = await self.download_reddit_video(video_url, audio_url)
 			await status.edit(content=status.content + 'processing...')
 
@@ -160,7 +164,7 @@ class Reddit(AlkalinePlugin):
 			await status.delete()
 
 			with open('downloaded/tmp/' + final_source_fname, 'rb') as f:
-				await message.channel.send(file=discord.File(fp=f, filename=final_source_fname))
+				await message.channel.send(file=discord.File(fp=f, filename=video_url.split('/')[-2]+'.mp4'))
 
 
 
