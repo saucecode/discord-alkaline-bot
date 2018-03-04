@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 LEFT_ARROW = '\u25C0'
 TWISTED_ARROWS = '\U0001F500'
+EJECT = '\U000023cf'
 RIGHT_ARROW = '\u25B6'
 REDDIT_CACHE = {}
 EXPIRY_TIME = 600
@@ -12,21 +13,23 @@ EXPIRY_TIME = 600
 FFMPEG_THREADS = 4
 
 class RollingMessage:
-	def __init__(self, client, message, url, links, index=0):
-		self.client = client
+	def __init__(self, parent, message, url, links, index=0):
+		self.client = parent.client
+		self.parent = parent
 		self._message = message
+		self.video_message = None
 		self.url = url
 		self.links = links
 		self.index = index
 
 	@classmethod
-	async def from_command(cls, client, msg, command, subreddit):
+	async def from_command(cls, parent, msg, command, subreddit):
 		endpoint = 'top/.json?t=all&limit=100' if command == 'rrtop' else '.json?limit=100'
 		url = "https://reddit.com/r/{subreddit}/{endpoint}".format(subreddit=subreddit, endpoint=endpoint)
 		message = await msg.channel.send('Requesting data...')
 		links = await cls.fetch(url)
 		links = links['data']['children']
-		instance = cls(client, message, url, links)
+		instance = cls(parent, message, url, links)
 		await instance.update_message()
 		return instance
 
@@ -35,10 +38,47 @@ class RollingMessage:
 		return '{item[title]} | {item[url]}'.format(item=self.links[self.index].get('data'))
 
 	async def update_message(self):
+		print('UPDATE MESSAGE')
 		self.links = await self.fetch(self.url)
 		self.links = self.links['data']['children']
 		await self._message.edit(content='{}/{} {}'.format(self.index + 1, len(self.links), self.item_text))
 		await self.set_reactions()
+
+		regexpr = r'https?:\/\/(w{3}\.)?reddit\.com\/r\/[a-zA-Z_0-9-]+\/comments\/[a-zA-Z_0-9-]+\/.+\/'
+		if 'v.redd.it' == self.links[self.index]['data']['domain']:
+			if re.match(regexpr, 'https://reddit.com' + self.links[self.index]['data']['permalink']):
+
+				print('VIDEO FOUND WHILE ROLLING')
+
+				video_url = self.links[self.index]['data']['secure_media']['reddit_video']['fallback_url']
+				audio_url = 'https://v.redd.it/{}/audio'.format(video_url.split('/')[-2])
+
+				if os.path.exists('downloaded/tmp/{}.mp4'.format(video_url.split('/')[-2])):
+					with open('downloaded/tmp/{}.mp4'.format(video_url.split('/')[-2]), 'rb') as f:
+						msg = await self._message.channel.send(file=discord.File(fp=f, filename=video_url.split('/')[-2]+'.mp4'))
+						self.parent.deletable_messages.append(msg)
+						await msg.add_reaction(EJECT)
+					return
+
+				# download the original sources
+				status = await self._message.channel.send('Downloading... ')
+				video_source_fname, audio_source_fname = await self.parent.download_reddit_video(video_url, audio_url)
+				await status.edit(content=status.content + 'processing...')
+
+				# convert to small 400x224 pixel files
+				final_source_fname = await self.parent.process_reddit_video(video_source_fname, audio_source_fname)
+
+				if not '..' in video_source_fname:
+					os.remove('downloaded/tmp/' + video_source_fname)
+				if not '..' in audio_source_fname:
+					os.remove('downloaded/tmp/' + audio_source_fname)
+
+				await status.delete()
+
+				with open('downloaded/tmp/' + final_source_fname, 'rb') as f:
+					msg = await self._message.channel.send(file=discord.File(fp=f, filename=video_url.split('/')[-2]+'.mp4'))
+					self.parent.deletable_messages.append(msg)
+					await msg.add_reaction(EJECT)
 
 	async def roll_next(self):
 		self.index += 1
@@ -77,6 +117,7 @@ class Reddit(AlkalinePlugin):
 	def __init__(self, client):
 		self.client = client
 		self.rolling_messages = {}
+		self.deletable_messages = []
 
 		self.executor = ThreadPoolExecutor(4)
 
@@ -102,19 +143,27 @@ class Reddit(AlkalinePlugin):
 				f.close()
 
 		async with aiohttp.ClientSession() as sesh, sesh.get(audio_url, headers={'User-Agent': 'Discord-Alkaline-Bot'}) as resp:
-			with open('downloaded/tmp/{}'.format(audio_source_fname), 'wb') as f:
+			if resp.status == 200:
+				with open('downloaded/tmp/{}'.format(audio_source_fname), 'wb') as f:
 
-				while True:
-					chunk = await resp.content.read(32768)
-					if not chunk: break
-					f.write(chunk)
-				f.close()
+					while True:
+						chunk = await resp.content.read(32768)
+						if not chunk: break
+						f.write(chunk)
+					f.close()
+			else:
+				print('Audio did not download.')
+				audio_source_fname = None
 
 		return video_source_fname, audio_source_fname
 
 	async def process_reddit_video(self, video_source_fname, audio_source_fname):
 		output_fname = video_source_fname.split('.')[0] + '.mp4'
-		command = 'ffmpeg -loglevel error -i downloaded/tmp/{} -i downloaded/tmp/{} -s 400x224 -acodec copy -threads {} -fs 8M -y downloaded/tmp/{}'.format(video_source_fname, audio_source_fname, FFMPEG_THREADS, output_fname)
+		if audio_source_fname:
+			command = 'ffmpeg -loglevel error -i downloaded/tmp/{} -i downloaded/tmp/{} -s 400x224 -acodec copy -threads {} -fs 8M -y downloaded/tmp/{}'.format(video_source_fname, audio_source_fname, FFMPEG_THREADS, output_fname)
+		else:
+			# no audio for this video
+			command = 'ffmpeg -loglevel error -i downloaded/tmp/{} -an -s 400x224 -threads {} -fs 8M -y downloaded/tmp/{}'.format(video_source_fname, FFMPEG_THREADS, output_fname)
 
 		def processor(cmd):
 			subprocess.check_output(cmd.split(' '))
@@ -124,6 +173,7 @@ class Reddit(AlkalinePlugin):
 		return output_fname
 
 	async def on_message(self, message):
+		if message.author.id == self.client.user.id: return
 		if not 'reddit.com/' in message.content:
 			return
 
@@ -133,6 +183,7 @@ class Reddit(AlkalinePlugin):
 		ma = re.match(regexpr, url)
 
 		if ma:
+			print('VIDEO SEEN IN ON_MESSAGE')
 			dat = await RollingMessage.fetch(url + '.json')
 
 			post = dat[0]['data']['children'][0]['data']
@@ -158,7 +209,7 @@ class Reddit(AlkalinePlugin):
 
 			if not '..' in video_source_fname:
 				os.remove('downloaded/tmp/' + video_source_fname)
-			if not '..' in audio_source_fname:
+			if audio_source_fname and not '..' in audio_source_fname:
 				os.remove('downloaded/tmp/' + audio_source_fname)
 
 			await status.delete()
@@ -170,20 +221,26 @@ class Reddit(AlkalinePlugin):
 
 	async def on_command(self, msg, command, args):
 			subreddit = args.strip()
-			rolling_message = await RollingMessage.from_command(self.client, msg, command, subreddit)
+			rolling_message = await RollingMessage.from_command(self, msg, command, subreddit)
 			self.rolling_messages[rolling_message.id] = rolling_message
 
 	async def on_reaction_add(self, reaction, user):
+		if reaction.message.id in [x.id for x in self.deletable_messages]:
+			print(reaction.emoji)
+			if reaction.emoji == EJECT:
+				msg = [x for x in self.deletable_messages if x.id == reaction.message.id][0]
+				await msg.delete()
+				self.deletable_messages.remove(msg)
+
 		rolling_message = self.rolling_messages.get(reaction.message.id, None)
-		if rolling_message is None:
-			return
-		options = {
-			LEFT_ARROW: rolling_message.roll_previous,
-			RIGHT_ARROW: rolling_message.roll_next,
-			TWISTED_ARROWS: rolling_message.roll_random
-		}
-		action = options[reaction.emoji]
-		return await action()
+		if rolling_message:
+			options = {
+				LEFT_ARROW: rolling_message.roll_previous,
+				RIGHT_ARROW: rolling_message.roll_next,
+				TWISTED_ARROWS: rolling_message.roll_random
+			}
+			action = options[reaction.emoji]
+			return await action()
 
 
 plugins = [Reddit]
