@@ -72,6 +72,12 @@ The `home_channel` and `backup_key` keys are used by the backup module and are o
 }
 ```
 
+### sxde.reddit module
+
+This is the reddit-browsing module, which lets you quickly browse subreddits (primarily images) with your friends from the chat room. As of 2018-03-04, the official Discord client does not support playing videos hosted on reddit.com (specifically v.redd.it) in the same way that it supports playing gfycat webm videos. To remedy this, the sxde.reddit module will download, rescale, and post a v.redd.it link's video into the chat whenever one is posted.
+
+Here is [a webm of this behavior](https://gfycat.com/QuaintDopeyGannet) in action. It was implemented on [2018-03-04 in this commit](https://github.com/saucecode/discord-alkaline-bot/commit/301a1f54404d0c2dca5a898a727d2059f6ac370d).
+
 
 ### Backup Module
 
