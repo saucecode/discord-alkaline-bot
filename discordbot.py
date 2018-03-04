@@ -1,3 +1,21 @@
+"""
+    Alkaline Bot - a modular Discord chat bot
+    Copyright (C) 2018    Julian Cahill
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
 import discord
 import asyncio
 import importlib
@@ -53,6 +71,10 @@ class AlkalineClient(discord.Client):
 			if 'command_prefix' in self.settings:
 				self.COMMAND_PREFIX = self.settings['command_prefix']
 				COMMAND_PREFIX = self.settings['command_prefix']
+
+			if not 'source' in self.settings or len(self.settings['source']) < 5:
+				print('Source code link must be specified in settings.json.')
+				sys.exit()
 
 	def save_settings(self):
 		with open('data/settings.json', 'w') as f:
@@ -151,6 +173,8 @@ class AlkalineClient(discord.Client):
 
 
 		# HARD CODED FUNCTIONS
+		if message.content == COMMAND_PREFIX + 'version':
+			await message.channel.send('Alkaline Bot ({}): {}'.format(self.settings['version'], self.settings['source']))
 
 		if message.content.startswith(self.COMMAND_PREFIX) and type(message.channel) == discord.TextChannel:
 			can_core_commands = self.get_member_has_any_permissions(['admin'], message.author.id)

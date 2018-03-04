@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # postfix.py - a postfix calculator for python 2 & 3
 # version 7    2016-09-25
+# https://github.com/saucecode/postfix-calculator
 
 import string, sys
 import cmath, math
