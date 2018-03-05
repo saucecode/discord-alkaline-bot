@@ -23,6 +23,7 @@ import traceback
 import json
 import os
 import platform
+import sys
 
 if platform.system() in ['Linux']:
 	discord.opus.load_opus('libopus.so.0')
