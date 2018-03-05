@@ -87,7 +87,7 @@ class RollingMessage:
 
 				if not '..' in video_source_fname:
 					os.remove('downloaded/tmp/' + video_source_fname)
-				if not '..' in audio_source_fname:
+				if audio_source_fname and not '..' in audio_source_fname:
 					os.remove('downloaded/tmp/' + audio_source_fname)
 
 				await status.delete()
