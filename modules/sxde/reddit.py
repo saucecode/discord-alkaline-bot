@@ -27,6 +27,8 @@ RIGHT_ARROW = '\u25B6'
 REDDIT_CACHE = {}
 EXPIRY_TIME = 600
 
+REDDIT_VIDEO_FOLDER = 'v.redd.it_downloads'
+
 FFMPEG_THREADS = 4
 
 class RollingMessage:
@@ -70,8 +72,8 @@ class RollingMessage:
 				video_url = self.links[self.index]['data']['secure_media']['reddit_video']['fallback_url']
 				audio_url = 'https://v.redd.it/{}/audio'.format(video_url.split('/')[-2])
 
-				if os.path.exists('downloaded/tmp/{}.mp4'.format(video_url.split('/')[-2])):
-					with open('downloaded/tmp/{}.mp4'.format(video_url.split('/')[-2]), 'rb') as f:
+				if os.path.exists('{}/{}.mp4'.format(REDDIT_VIDEO_FOLDER, video_url.split('/')[-2])):
+					with open('{}/{}.mp4'.format(REDDIT_VIDEO_FOLDER, video_url.split('/')[-2]), 'rb') as f:
 						msg = await self._message.channel.send(file=discord.File(fp=f, filename=video_url.split('/')[-2]+'.mp4'))
 						self.parent.deletable_messages.append(msg)
 						await msg.add_reaction(EJECT)
@@ -86,13 +88,13 @@ class RollingMessage:
 				final_source_fname = await self.parent.process_reddit_video(video_source_fname, audio_source_fname)
 
 				if not '..' in video_source_fname:
-					os.remove('downloaded/tmp/' + video_source_fname)
+					os.remove(REDDIT_VIDEO_FOLDER + '/' + video_source_fname)
 				if audio_source_fname and not '..' in audio_source_fname:
-					os.remove('downloaded/tmp/' + audio_source_fname)
+					os.remove(REDDIT_VIDEO_FOLDER + '/' + audio_source_fname)
 
 				await status.delete()
 
-				with open('downloaded/tmp/' + final_source_fname, 'rb') as f:
+				with open(REDDIT_VIDEO_FOLDER + '/' + final_source_fname, 'rb') as f:
 					msg = await self._message.channel.send(file=discord.File(fp=f, filename=video_url.split('/')[-2]+'.mp4'))
 					self.parent.deletable_messages.append(msg)
 					await msg.add_reaction(EJECT)
@@ -143,15 +145,15 @@ class Reddit(AlkalinePlugin):
 		self.author = 'Julian'
 
 	async def download_reddit_video(self, video_url, audio_url):
-		if not os.path.exists('downloaded/tmp'):
-			os.mkdir('downloaded/tmp')
+		if not os.path.exists(REDDIT_VIDEO_FOLDER):
+			os.mkdir(REDDIT_VIDEO_FOLDER)
 
 		video_code = audio_url.split('/')[-2]
 		video_source_fname = video_code + '.' + video_url.split('/')[-1] + '.mp4'
 		audio_source_fname = video_code + '.audio'
 
 		async with aiohttp.ClientSession() as sesh, sesh.get(video_url, headers={'User-Agent': 'Discord-Alkaline-Bot'}) as resp:
-			with open('downloaded/tmp/{}'.format(video_source_fname), 'wb') as f:
+			with open('{}/{}'.format(REDDIT_VIDEO_FOLDER, video_source_fname), 'wb') as f:
 
 				while True:
 					chunk = await resp.content.read(32768)
@@ -161,7 +163,7 @@ class Reddit(AlkalinePlugin):
 
 		async with aiohttp.ClientSession() as sesh, sesh.get(audio_url, headers={'User-Agent': 'Discord-Alkaline-Bot'}) as resp:
 			if resp.status == 200:
-				with open('downloaded/tmp/{}'.format(audio_source_fname), 'wb') as f:
+				with open('{}/{}'.format(REDDIT_VIDEO_FOLDER, audio_source_fname), 'wb') as f:
 
 					while True:
 						chunk = await resp.content.read(32768)
@@ -177,10 +179,10 @@ class Reddit(AlkalinePlugin):
 	async def process_reddit_video(self, video_source_fname, audio_source_fname):
 		output_fname = video_source_fname.split('.')[0] + '.mp4'
 		if audio_source_fname:
-			command = 'ffmpeg -loglevel error -i downloaded/tmp/{} -i downloaded/tmp/{} -s 400x224 -acodec copy -threads {} -fs 8M -y downloaded/tmp/{}'.format(video_source_fname, audio_source_fname, FFMPEG_THREADS, output_fname)
+			command = 'ffmpeg -loglevel error -i {}/{} -i {}/{} -s 400x224 -acodec copy -threads {} -fs 8M -y {}/{}'.format(REDDIT_VIDEO_FOLDER, video_source_fname, REDDIT_VIDEO_FOLDER, audio_source_fname, FFMPEG_THREADS, REDDIT_VIDEO_FOLDER, output_fname)
 		else:
 			# no audio for this video
-			command = 'ffmpeg -loglevel error -i downloaded/tmp/{} -an -s 400x224 -threads {} -fs 8M -y downloaded/tmp/{}'.format(video_source_fname, FFMPEG_THREADS, output_fname)
+			command = 'ffmpeg -loglevel error -i {}/{} -an -s 400x224 -threads {} -fs 8M -y {}/{}'.format(REDDIT_VIDEO_FOLDER, video_source_fname, FFMPEG_THREADS, REDDIT_VIDEO_FOLDER, output_fname)
 
 		def processor(cmd):
 			subprocess.check_output(cmd.split(' '))
@@ -210,8 +212,8 @@ class Reddit(AlkalinePlugin):
 			video_url = post['secure_media']['reddit_video']['fallback_url']
 			audio_url = 'https://v.redd.it/{}/audio'.format(video_url.split('/')[-2])
 
-			if os.path.exists('downloaded/tmp/{}.mp4'.format(video_url.split('/')[-2])):
-				with open('downloaded/tmp/{}.mp4'.format(video_url.split('/')[-2]), 'rb') as f:
+			if os.path.exists('{}/{}.mp4'.format(REDDIT_VIDEO_FOLDER, video_url.split('/')[-2])):
+				with open('{}/{}.mp4'.format(REDDIT_VIDEO_FOLDER, video_url.split('/')[-2]), 'rb') as f:
 					await message.channel.send(file=discord.File(fp=f, filename=video_url.split('/')[-2]+'.mp4'))
 
 				return
@@ -225,13 +227,13 @@ class Reddit(AlkalinePlugin):
 			final_source_fname = await self.process_reddit_video(video_source_fname, audio_source_fname)
 
 			if not '..' in video_source_fname:
-				os.remove('downloaded/tmp/' + video_source_fname)
+				os.remove(REDDIT_VIDEO_FOLDER + '/' + video_source_fname)
 			if audio_source_fname and not '..' in audio_source_fname:
-				os.remove('downloaded/tmp/' + audio_source_fname)
+				os.remove(REDDIT_VIDEO_FOLDER + '/' + audio_source_fname)
 
 			await status.delete()
 
-			with open('downloaded/tmp/' + final_source_fname, 'rb') as f:
+			with open(REDDIT_VIDEO_FOLDER + '/' + final_source_fname, 'rb') as f:
 				await message.channel.send(file=discord.File(fp=f, filename=video_url.split('/')[-2]+'.mp4'))
 
 
