@@ -1,24 +1,9 @@
-"""
-    Alkaline Bot - a modular Discord chat bot
-    Copyright (C) 2018    Julian Cahill
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""
 from ..alkalineplugin import AlkalinePlugin
 from ..sailortalk import filthy_verb
 import discord, io, time, random, os
 from PIL import Image, ImageDraw, ImageFont
+
+from concurrent.futures import ThreadPoolExecutor
 
 random.seed(os.urandom(100))
 
@@ -91,6 +76,8 @@ class TwentySquaresGame:
 		self.parent = parent
 		self.client = parent.client
 
+		self.executor = self.parent.executor
+
 		self.last_board_message = None
 		self.last_status_message = None
 
@@ -154,7 +141,7 @@ class TwentySquaresGame:
 		self.redBottomSquare = redBottomSquare
 		self.blueBottomSquare = blueBottomSquare
 
-	async def populate_board(self):
+	def render_board(self):
 		im = Image.new('RGB', size=BOARD_SIZE)
 		font = ImageFont.truetype('Kenney Pixel.ttf', 24)
 		draw = ImageDraw.Draw(im)
@@ -213,6 +200,12 @@ class TwentySquaresGame:
 
 		image_bytes = io.BytesIO()
 		im.save(image_bytes, format='png')
+
+		return image_bytes
+
+	async def populate_board(self):
+
+		image_bytes = await self.client.loop.run_in_executor(self.executor, self.render_board)
 
 		if self.last_board_message:
 			await self.last_board_message.delete()
@@ -396,6 +389,8 @@ class TwentySquares(AlkalinePlugin):
 
 	def __init__(self, client):
 		self.client = client
+
+		self.executor = ThreadPoolExecutor(4)
 
 		self.challenges = {}
 		self.games = []
