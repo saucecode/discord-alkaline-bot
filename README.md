@@ -3,7 +3,7 @@ discord-alkaline-bot
 
 My second generation discord chat bot, and successor to [discord-acid-bot](https://github.com/saucecode/discord-acid-bot). Requires Python 3.5+.
 
-Run as: `$ python3 discordbot.py` and make sure a file `secrettoken` exists in the same directory containing the bot's login token.
+Run as: `$ python3 discordbot.py` and make sure a file `secrettoken` exists in the same directory containing the bot's login token. If you make changes to the bot and are running it on a public server, you must modify "source" in settings.json to link to the modified source code (as per the AGPLv3 License).
 
 ### Modules
 
