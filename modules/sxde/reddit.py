@@ -24,6 +24,7 @@ LEFT_ARROW = '\u25C0'
 TWISTED_ARROWS = '\U0001F500'
 EJECT = '\U000023cf'
 RIGHT_ARROW = '\u25B6'
+RECENTER_ARROW = '\U000021a9'
 REDDIT_CACHE = {}
 EXPIRY_TIME = 600
 
@@ -55,6 +56,15 @@ class RollingMessage:
 	@property
 	def item_text(self):
 		return '{item[title]} | {item[url]}'.format(item=self.links[self.index].get('data'))
+
+	async def recenter_message(self):
+		newmessage = await self._message.channel.send('*Hello there*')
+		#self.rolling_messages[rolling_message.id] = rolling_message
+		del self.parent.rolling_messages[self._message.id]
+		self.parent.rolling_messages[newmessage.id] = self
+		await self._message.delete()
+		self._message = newmessage
+		await self.update_message()
 
 	async def update_message(self):
 		print('UPDATE MESSAGE')
@@ -112,7 +122,7 @@ class RollingMessage:
 		await self.update_message()
 
 	async def set_reactions(self):
-		for emoji in [LEFT_ARROW, TWISTED_ARROWS, RIGHT_ARROW]:
+		for emoji in [LEFT_ARROW, TWISTED_ARROWS, RIGHT_ARROW, RECENTER_ARROW]:
 			await self._message.add_reaction(emoji)
 
 	@staticmethod
@@ -256,7 +266,8 @@ class Reddit(AlkalinePlugin):
 			options = {
 				LEFT_ARROW: rolling_message.roll_previous,
 				RIGHT_ARROW: rolling_message.roll_next,
-				TWISTED_ARROWS: rolling_message.roll_random
+				TWISTED_ARROWS: rolling_message.roll_random,
+				RECENTER_ARROW: rolling_message.recenter_message
 			}
 			action = options[reaction.emoji]
 			return await action()
