@@ -271,4 +271,13 @@ with open('secrettoken', 'r') as f:
 	client_token = f.read()
 
 alkaline = AlkalineClient()
-alkaline.run(client_token)
+#alkaline.connect()
+#alkaline.login(client_token, bot=True)
+
+try:
+	alkaline.loop.run_until_complete(alkaline.start(client_token, bot=True))
+except KeyboardInterrupt:
+	alkaline.loop.run_until_complete(alkaline.logout())
+	# cancel all tasks lingering
+finally:
+	alkaline.loop.close()
