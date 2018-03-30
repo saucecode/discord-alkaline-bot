@@ -69,14 +69,37 @@ class Reactions(AlkalinePlugin):
 		elif command == 'reactions':
 			await message.channel.send(', '.join( [ name for name in self.reactions if len(self.reactions[name]) > 0 ] ))
 
+		elif command == 'reactiondel':
+			if not len(args.split(' ')) == 2:
+				await message.channel.send('Usage: `{}{} {}`'.format(self.client.COMMAND_PREFIX, command, args))
+
+			name = args.split(' ')[0]
+
+			try:
+				num = int(args.split(' ')[1])
+			except ValueError:
+				await message.channel.send('Usage: `{}{} {}`'.format(self.client.COMMAND_PREFIX, command, args))
+				return
+
+			if not name in self.reactions or len(self.reactions[name]) == 0:
+				await message.channel.send('Could not find a reaction with that name.')
+				return
+
+			r = self.reactions[name].pop(num)
+			self.save_reactions()
+			await message.channel.send('Popped reaction: `{}`'.format(r))
 
 plugins = [Reactions]
 commands = {
 	'reactionadd': {
-		'usage': 'reactionadd [reaction name] [reaction]',
+		'usage': '[reaction name] [reaction]',
 		'desc':  'Saves the text or link [reaction] under [reaction name]'
 	},
 	'reactions':{
 		'desc': 'List all reactions.'
+	},
+	'reactiondel':{
+		'usage': '[reaction name] [index]',
+		'desc': 'Deletes the specified reaction by index.'
 	}
 }
