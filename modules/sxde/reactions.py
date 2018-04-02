@@ -47,7 +47,8 @@ class Reactions(AlkalinePlugin):
 		if message.content[:2] == self.client.COMMAND_PREFIX * 2 and len(message.content) > 2:
 			reaction_name = message.content[2:]
 			if reaction_name in self.reactions:
-				await message.channel.send(random.choice(self.reactions[reaction_name]))
+				idx = random.randint(0, len(self.reactions[reaction_name]))
+				await message.channel.send('{} {}'.format(idx, self.reactions[reaction_name][idx]))
 
 	async def on_command(self, message, command, args):
 		if command == 'reactionadd':
