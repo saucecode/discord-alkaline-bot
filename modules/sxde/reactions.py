@@ -46,7 +46,7 @@ class Reactions(AlkalinePlugin):
 	async def on_message(self, message):
 		if message.content[:2] == self.client.COMMAND_PREFIX * 2 and len(message.content) > 2:
 			reaction_name = message.content[2:]
-			if reaction_name in self.reactions:
+			if reaction_name in self.reactions and len(self.reactions[reaction_name]) > 0:
 				idx = random.randint(0, len(self.reactions[reaction_name]))
 				await message.channel.send('{} {}'.format(idx, self.reactions[reaction_name][idx]))
 
