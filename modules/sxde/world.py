@@ -30,7 +30,8 @@ class Weather(AlkalinePlugin):
 		self.client = client
 
 		self.default_location = self.client.settings['default_location']
-		self.apiKey = self.client.settings['openWeatherAPIKey']
+		self.apiKey = self.client.settings.get('openWeatherAPIKey', None)
+		self.wxApiKey = self.client.settings.get('checkWXAPIKey', None)
 
 		self.last_retrieved = {'weather': {self.default_location: 0}, 'forecast': {self.default_location: 0}}
 		self.weather = {}
@@ -41,7 +42,7 @@ class Weather(AlkalinePlugin):
 		self.author = 'Julian'
 
 	async def on_command(self, message: discord.Message, command : str, args : str):
-		if command == 'weather' and len(args) == 0:
+		if command == 'weather' and len(args) == 0 and self.apiKey:
 
 			now = time.time()
 			location = self.default_location
@@ -59,10 +60,10 @@ class Weather(AlkalinePlugin):
 			if weather_message:
 				func = lambda x: weather_message.edit(content=x)
 
-			await func('{}, {}: {}. Temperature {} °C / {} K. Humidity {}%. Sunrise is at {} and sunset is at {}'.format( w['name'], w['sys']['country'], w['weather'][0]['description'], int(w['main']['temp']-273.15), int(w['main']['temp']), w['main']['humidity'], epoch_to_24htime(w['sys']['sunrise']), epoch_to_24htime(w['sys']['sunset'])
+			await func('{}, {}: {}. Temperature {} °C. Humidity {}%. Wind {}° {} km/h. Sunrise {}. Sunset {}.'.format( w['name'], w['sys']['country'], w['weather'][0]['description'], int(w['main']['temp']-273.15), w['main']['humidity'], w['wind']['deg'], int(round(w['wind']['speed']*3.6)), epoch_to_24htime(w['sys']['sunrise']), epoch_to_24htime(w['sys']['sunset'])
 			))
 
-		elif command == 'forecast' and len(args) == 0:
+		elif command == 'forecast' and len(args) == 0 and self.apiKey:
 
 			now = time.time()
 			location = self.default_location
@@ -87,6 +88,14 @@ class Weather(AlkalinePlugin):
 
 			await func('24 hour forecast for {}, {}\n{}'.format(w['city']['name'], w['city']['country'], '\n'.join(output)))
 
+		elif command == 'metar' and len(args.split(' ')) == 1 and self.wxApiKey:
+			if not len(args.split(' ')[0]) == 4:
+				await message.channel.send('Requires 4-letter ICAO code.')
+
+			resp = await self.do_metar_request(args.split(' ')[0])
+			await message.channel.send('`{}`'.format( resp['data'][0] ))
+
+
 	async def do_weather_request(self, location):
 		async with aiohttp.ClientSession() as session:
 			async with session.get('http://api.openweathermap.org/data/2.5/weather?id={}&appid={}'.format(location, self.apiKey)) as resp:
@@ -97,6 +106,11 @@ class Weather(AlkalinePlugin):
 			async with session.get('http://api.openweathermap.org/data/2.5/forecast?id={}&cnt=8&appid={}'.format(location, self.apiKey)) as resp:
 				return await resp.json()
 
+	async def do_metar_request(self, icao):
+		async with aiohttp.ClientSession() as session:
+			async with session.get('https://api.checkwx.com/metar/{}'.format(icao), headers={'X-API-Key': self.wxApiKey}) as resp:
+				return await resp.json()
+
 
 plugins = [Weather]
 commands = {
@@ -105,5 +119,9 @@ commands = {
 	},
 	'forecast': {
 		'desc': 'Prints out the 24 hour forecast.'
+	},
+	'metar': {
+		'desc': 'Prints out METAR for a specified ICAO code',
+		'usage': '[ICAO code]'
 	}
 }

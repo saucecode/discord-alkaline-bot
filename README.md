@@ -56,7 +56,7 @@ Here is a quick rundown of what you ought to put in this file. The only required
 
 The `home_channel` and `backup_key` keys are used by the backup module and are only required to make backups. `home_channel` is the channel ID to upload the backup to, and `backup_key` is the encrypt/decrypt key on the backup.
 
-`openWeatherAPIKey` is an API key used by the weather module. The weather module uses [Open Weather Map](http://openweathermap.org/) as its source, and requires a free account to get an API key. `default_location` is also specific to the weather command, and all weather queries are made for that location. 2193734 is the key for Auckland, New Zealand, which is where my server's users are based. Try [here for a full list](http://openweathermap.org/help/city_list.txt).
+`openWeatherAPIKey` is an API key used by the weather module. The weather module uses [Open Weather Map](http://openweathermap.org/) as its source, and requires a free account to get an API key. `default_location` is also specific to the weather command, and all weather queries are made for that location. 2193734 is the key for Auckland, New Zealand, which is where my server's users are based. Try [here for a full list](http://openweathermap.org/help/city_list.txt). `checkWXAPIKey` is used only by the `\metar` command in the weather module. It retrieves METAR reports from [checkWX](https://api.checkwx.com/), a free API for METAR reports, if that interests you.
 
 ```
 {
@@ -64,6 +64,7 @@ The `home_channel` and `backup_key` keys are used by the backup module and are o
 	"command_prefix": "\\",
 	"default_location": 2193734,
 	"openWeatherAPIKey": "redacted",
+	"checkWXAPIKey": "redacted",
 	"backup_key": "secret",
 
 	"per-server-plugin-whitelist": {
