@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from .alkalineplugin import AlkalinePlugin
-import discord, time
+import discord, time, requests
 
 from . import dictionarycom as dictionary
 from .sailortalk import sailor_word
@@ -93,6 +93,12 @@ class Essentials(AlkalinePlugin):
 			if args and is_float(args):
 				await message.channel.send(time.ctime(float(args)))
 
+		elif command == 'chavatar':
+			if not args.startswith('http'): return
+			avatar_url = args
+			await self.client.user.edit(avatar=requests.get(avatar_url).content)
+
+
 class EssentialsCalc(AlkalinePlugin):
 
 	def __init__(self, client):
@@ -138,6 +144,11 @@ commands = {
 	'ctime':{
 		'desc': 'Converts unix epoch number to a human-readable time string.',
 		'example': '1518765410.543'
+	},
+	'chavatar':{
+		'desc': 'Changes the avatar of the bot to the image at url.',
+		'usage': '[url]',
+		'perms': ['op', 'admin']
 	},
 
 	'calc':{
