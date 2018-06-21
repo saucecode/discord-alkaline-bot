@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from .alkalineplugin import AlkalinePlugin
-import discord, time, requests
+import discord, time, requests, random
 
 from . import dictionarycom as dictionary
 from .sailortalk import sailor_word
@@ -41,6 +41,14 @@ class Essentials(AlkalinePlugin):
 	async def on_command(self, message, command, args):
 		if command == 'ping':
 			await message.channel.send('Pong')
+
+
+		elif command == 'flip':
+			random_int = random.randint(0,1)
+			if random_int == 0:
+				await message.channel.send('Tails')
+			else:
+				await message.channel.send('Heads')
 
 
 		elif command == 'whoami':
@@ -124,6 +132,7 @@ class EssentialsCalc(AlkalinePlugin):
 plugins = [Essentials, EssentialsCalc]
 commands = {
 	'ping':{},
+	'flip':{},
 	'whoami':{},
 	'whois':{},
 	'define':{
