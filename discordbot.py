@@ -171,8 +171,10 @@ class AlkalineClient(discord.Client):
 
 									if not 'function' in mod.commands[command]:
 										await plugin.on_command(message, command, message.content[1 + len(self.COMMAND_PREFIX) + len(command):])
+										return
 									else:
 										await mod.commands[command]['function']( plugin, message, message.content[1 + len(self.COMMAND_PREFIX) + len(command):] )
+										return
 					else:
 						await message.channel.send('Permission denied.')
 
