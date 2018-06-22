@@ -168,7 +168,11 @@ class AlkalineClient(discord.Client):
 								# checks if the server is not in the whitelist, or if it is allowed to use a module -- see README.md.
 								if not str(message.guild.id) in self.settings['per-server-plugin-whitelist'] \
 								   or mod.__name__[8:] in self.settings['per-server-plugin-whitelist'][str(message.guild.id)]:
-									await plugin.on_command(message, command, message.content[1 + len(self.COMMAND_PREFIX) + len(command):])
+
+									if not 'function' in mod.commands[command]:
+										await plugin.on_command(message, command, message.content[1 + len(self.COMMAND_PREFIX) + len(command):])
+									else:
+										await mod.commands[command]['function']( plugin, message, message.content[1 + len(self.COMMAND_PREFIX) + len(command):] )
 					else:
 						await message.channel.send('Permission denied.')
 
