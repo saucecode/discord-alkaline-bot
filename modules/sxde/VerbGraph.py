@@ -81,23 +81,6 @@ class VerbGraph:
 		return strings
 
 	# does ID lookups to replace IDs with names -- assumes node keys are valid IDs
-	def walk_named2(self, actor, message : discord.Message, depth=8):
-		# discord.utils.get(message.guild.members, id=args)
-		lookup = {}
-		strings = self.walk(actor, depth)
-		parsed_strings = []
-		for s in strings:
-			ids = re.findall('\\d{10,}', s)
-			for i in ids:
-				lookup[i] = discord.utils.get(message.guild.members, id=int(i)).display_name
-
-		for s in strings:
-			for i in lookup:
-				s = s.replace(i, lookup[i])
-			parsed_strings.append(s)
-
-		return parsed_strings
-
 	def attach_names(self, strings, message : discord.Message):
 		lookup = {}
 		parsed_strings = []
