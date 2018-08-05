@@ -114,14 +114,14 @@ class EssentialsCalc(AlkalinePlugin):
 	async def on_message_edit(self, before, after):
 		if not self.answer_message == None:
 			if before.id == self.query_message.id:
-				await self.answer_message.edit(content=postfix.outputResult( postfix.doPostfix(after.content[1 + 4 + len(self.client.COMMAND_PREFIX):].strip()) ))
+				await self.answer_message.edit(content=postfix.quickly( after.content[1 + 4 + len(self.client.COMMAND_PREFIX):].strip() ))
 
 	async def on_command(self, message, command, args):
 		pass
 
 	async def calc(self, message, args):
 		self.query_message = message
-		self.answer_message = await message.channel.send( postfix.outputResult( postfix.doPostfix(message.content[1 + 4 + len(self.client.COMMAND_PREFIX):].strip()) ) )
+		self.answer_message = await message.channel.send( postfix.quickly( message.content[1 + 4 + len(self.client.COMMAND_PREFIX):].strip() ) )
 
 plugins = [Essentials, EssentialsCalc]
 commands = {
