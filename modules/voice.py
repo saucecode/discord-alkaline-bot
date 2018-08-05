@@ -120,13 +120,25 @@ class VoiceManager(AlkalinePlugin):
 
 		elif command == 'queue':
 			if len(self.queue) > 0:
-				await message.channel.send(
-				'```\n{}\n```'.format(
-					'\n'.join(
-						[ '{}. ({}) {}'.format(i, 'ytsearch' if x['type'] == 'query' else 'cache', x['query'] if x['type'] == 'query' else x['filename']) for i,x in enumerate(self.queue) ]
+
+				items = [ '{}. ({}) {}'.format(i, 'ytsearch' if x['type'] == 'query' else 'cache', x['query'] if x['type'] == 'query' else x['filename']) for i,x in enumerate(self.queue) ]
+				segments = [[]]
+				i = 0
+				for s in items:
+					segments[i].append(s)
+					if len(segments[i]) == 20:
+						i += 1
+						segments.append([])
+				if len(segments[-1]) == 0: del segments[-1]
+
+				for item in segments:
+					await message.channel.send(
+					'```\n{}\n```'.format(
+						'\n'.join(
+							item
+						)
 					)
-				)
-				)
+					)
 			else:
 				await message.channel.send('Queue is empty.')
 
@@ -177,7 +189,17 @@ class VoiceManager(AlkalinePlugin):
 			if len(args) == 0 or ' ' in args or not args in self.playlists:
 				await message.channel.send('Please specify playlist name.')
 			else:
-				await message.channel.send('```\n{}\n```'.format( '\n'.join( ['{}. {}'.format(index,song) for index,song in enumerate(self.playlists[args])] ) ))
+				songlist = ['{}. {}'.format(index,song) for index,song in enumerate(self.playlists[args])]
+				segments = [[]]
+				i = 0
+				for s in songlist:
+					segments[i].append(s)
+					if len(segments[i]) == 20:
+						i += 1
+						segments.append([])
+				if len(segments[-1]) == 0: del segments[-1]
+				for segment in segments:
+					await message.channel.send('```\n{}\n```'.format( '\n'.join( segment ) ))
 
 		elif command == 'plpop':
 			args = args.split(' ')
