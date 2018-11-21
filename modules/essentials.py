@@ -108,7 +108,7 @@ class Essentials(AlkalinePlugin):
 
 		count = int(args.split('d')[0])
 		sides = int(args.split('d')[1])
-		roll_result = [random.randint(1,sides+1) for i in range(count)]
+		roll_result = [random.randint(1,sides) for i in range(count)]
 		await message.channel.send('{}: {}'.format(args, ', '.join([str(x) for x in roll_result])))
 
 
