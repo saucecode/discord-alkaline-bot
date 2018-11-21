@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from .alkalineplugin import AlkalinePlugin
-import discord, time, requests, random
+import discord, time, requests, random, asyncio, re
 
 from . import dictionarycom as dictionary
 from .sailortalk import sailor_word
@@ -35,7 +35,7 @@ class Essentials(AlkalinePlugin):
 		self.client = client
 
 		self.name = 'Essentials'
-		self.version = '0.1'
+		self.version = '1.0'
 		self.author = 'Julian'
 
 	async def ping(self, message, args):
@@ -64,6 +64,7 @@ class Essentials(AlkalinePlugin):
 		await message.channel.send('Channel ID: %i' % message.channel.id)
 
 	async def define(self, message, args):
+		'''
 		word = args.split(' ')[0]
 		defs = dictionary.get_definitions(word)[:3]
 		if len(defs) == 0:
@@ -75,6 +76,8 @@ class Essentials(AlkalinePlugin):
 				out += '%i. %s\n' % (i,s)
 				i += 1
 			await message.channel.send('```%s```' % (out,))
+		'''
+		await message.channel.send('This command is not currently implemented.')
 
 	async def urbandictionary(self, message, args):
 		word = args
@@ -97,6 +100,16 @@ class Essentials(AlkalinePlugin):
 		if not args.startswith('http'): return
 		avatar_url = args
 		await self.client.user.edit(avatar=requests.get(avatar_url).content)
+
+	async def roll_dice(self, message, args):
+		if not re.match('^(\\d+)d(\\d+)$', args):
+			await message.channel.send('Please enter a D&D roll, like 1d6 or 2d20')
+			return
+
+		count = int(args.split('d')[0])
+		sides = int(args.split('d')[1])
+		roll_result = [random.randint(1,sides+1) for i in range(count)]
+		await message.channel.send('{}: {}'.format(args, ', '.join([str(x) for x in roll_result])))
 
 
 class EssentialsCalc(AlkalinePlugin):
@@ -173,5 +186,12 @@ commands = {
 		'desc':  'Does a calculation.',
 		'example': '3 3 * 4 4 * + sqrt',
 		'function': EssentialsCalc.calc
+	},
+
+	'roll':{
+		'function': Essentials.roll_dice,
+		'usage': 'XdY',
+		'desc': 'Rolls an X sided die Y times',
+		'example': '4d6'
 	}
 }
