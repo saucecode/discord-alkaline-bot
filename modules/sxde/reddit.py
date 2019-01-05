@@ -133,10 +133,13 @@ class RollingMessage:
 			print('Cache hit: ', url)
 			return cached_item['content']
 		print('Cache miss: ', url)
-		async with aiohttp.ClientSession() as sesh, sesh.get(url, headers={'User-Agent': 'Discord-Alkaline-Bot'}) as resp:
-				dat = await resp.json()
-				REDDIT_CACHE[url] = dict(expiration=now+EXPIRY_TIME, content=dat)
-				return REDDIT_CACHE[url]['content']
+		try:
+			async with aiohttp.ClientSession() as sesh, sesh.get(url, headers={'User-Agent': 'Discord-Alkaline-Bot'}) as resp:
+					dat = await resp.json()
+					REDDIT_CACHE[url] = dict(expiration=now+EXPIRY_TIME, content=dat)
+					return REDDIT_CACHE[url]['content']
+		except aiohttp.client_exceptions.ContentTypeError:
+			return None
 
 	def __getattr__(self, item):
 		return getattr(self._message, item)
@@ -212,8 +215,11 @@ class Reddit(AlkalinePlugin):
 		ma = re.match(regexpr, url)
 
 		if ma:
-			print('VIDEO SEEN IN ON_MESSAGE')
 			dat = await RollingMessage.fetch(url + '.json')
+
+			if not dat:
+				return
+			print('VIDEO SEEN IN ON_MESSAGE')
 
 			post = dat[0]['data']['children'][0]['data']
 			if not post['domain'] == 'v.redd.it':
