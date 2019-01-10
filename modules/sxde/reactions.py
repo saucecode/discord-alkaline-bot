@@ -79,7 +79,7 @@ class Reactions(AlkalinePlugin):
 			try:
 				num = int(args.split(' ')[1])
 			except ValueError:
-				await message.channel.send('Usage: `{}{} {}`'.format(self.client.COMMAND_PREFIX, command, args))
+				await message.channel.send('Usage: `{}{} {} [index]`'.format(self.client.COMMAND_PREFIX, command, args))
 				return
 
 			if not name in self.reactions or len(self.reactions[name]) == 0:
