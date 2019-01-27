@@ -17,11 +17,18 @@
 """
 
 from .alkalineplugin import AlkalinePlugin
-import discord, asyncio, youtube_dl, requests, urllib3, io, subprocess, threading, json, re, os, random
+import discord, asyncio, youtube_dl, requests, urllib3, io, subprocess, threading, json, re, os, random, time, mimetypes
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 from concurrent.futures import ThreadPoolExecutor
+
+try:
+	from flask import render_template, request, Response
+except:
+	pass
+
+guess_type = lambda x: mimetypes.guess_type(x)[0] or 'application/octet-stream'
 
 '''
 
@@ -39,6 +46,7 @@ class VoiceManager(AlkalinePlugin):
 
 	def __init__(self, client):
 		self.client = client
+		self.client.voice = None
 
 		self.queue = []
 		self.executor = ThreadPoolExecutor(4)
@@ -46,6 +54,7 @@ class VoiceManager(AlkalinePlugin):
 
 		self.playlists = {}
 		self.load_playlists()
+		self.currently_playing = 'Nothing'
 
 		self.audio_format_codes = ['171', '43']
 
@@ -60,6 +69,11 @@ class VoiceManager(AlkalinePlugin):
 
 		task = self.client.loop.create_task(self.background_task())
 		task.alkaline_identifier = self.name
+
+	def humanize_filename(self, fname):
+		if fname.startswith('downloaded/'):
+			fname = fname[len('downloaded/'):]
+		return re.sub('-[a-zA-Z_\-0-9]{10,}\.(webm|mp3|m4a)$', '', fname)
 
 	def load_playlists(self):
 		if not os.path.exists('downloaded/'):
@@ -96,13 +110,18 @@ class VoiceManager(AlkalinePlugin):
 				self.queue.append( {'type':'query', 'query': args} )
 			else:
 				search = self.search_songs(args)
-				if len(search) > 5:
+				'''if len(search) > 5:
 					await message.channel.send('Found more than 5 results - please be more specific.')
 				elif len(search) > 1:
 					await message.channel.send('Found these results - please be more specific.\n```\n{}\n```'.format( '\n'.join(search) ))
 				elif len(search) == 0:
 					await message.channel.send('Added {} to the queue (ytsearch).'.format( args ))
 					self.queue.append( {'type':'query', 'query': args} )
+				else:
+					await message.channel.send('Added {} to the queue. (cached)'.format( '-'.join(search[0].split('-')[:-1]) ))
+					self.queue.append( {'type':'file', 'filename': 'downloaded/' + search[0]} )'''
+				if len(search) == 0:
+					await message.channel.send('Found these results - please be more specific.\n```\n{}\n```'.format( '\n'.join(search) ))
 				else:
 					await message.channel.send('Added {} to the queue. (cached)'.format( '-'.join(search[0].split('-')[:-1]) ))
 					self.queue.append( {'type':'file', 'filename': 'downloaded/' + search[0]} )
@@ -170,6 +189,8 @@ class VoiceManager(AlkalinePlugin):
 
 				search = self.search_songs(query)
 
+				if len(search) > 0: search = [search[0]]
+
 				if len(search) > 5:
 					await message.channel.send('Found more than 5 results - please be more specific.')
 				elif len(search) > 1:
@@ -221,9 +242,30 @@ class VoiceManager(AlkalinePlugin):
 			if not args in self.playlists:
 				await message.channel.send('Specify an existing playlist name.')
 			else:
+				temp_queue = []
+
 				for fname in self.playlists[args]:
-					self.queue.append( {'type':'file', 'filename':'downloaded/{}'.format(fname)} )
+					temp_queue.append( {'type':'file', 'filename':'downloaded/{}'.format(fname)} )
+
+				first = temp_queue.pop(0)
+				random.shuffle(temp_queue)
+
+				self.queue.append(first)
+				self.queue.extend(temp_queue)
+
 				await message.channel.send('Added {} new files to the queue.'.format(len(self.playlists[args])))
+
+		elif command == 'queuenext':
+			if len(self.queue) < 2:
+				await message.channel.send('Not enough elements in the queue.')
+				return
+			else:
+				last = self.queue.pop()
+				self.queue.insert(0, last)
+				await message.channel.send('Up next: ({}) {}'.format(
+					'ytsearch' if last['type'] == 'query' else 'cache',
+					last['query'] if last['type'] == 'query' else last['filename']
+				))
 
 
 	def search_songs(self, query):
@@ -270,6 +312,8 @@ class VoiceManager(AlkalinePlugin):
 			if len(self.queue) > 0:
 				if not self.client.voice.is_playing():
 					if self.queue[0]['type'] == 'file':
+						self.currently_playing = self.queue[0]['filename']
+						print('voice.py - Now playing from file:', self.queue[0]['filename'])
 						self.client.voice.play(
 							discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(self.queue[0]['filename']), volume=0.5)
 						)
@@ -296,6 +340,9 @@ class VoiceManager(AlkalinePlugin):
 
 						player = discord.FFmpegPCMAudio(subprocess.PIPE, pipe=True)
 						req = self.http.request('GET', chosen_format['url'], preload_content=False)
+
+						with open('dump_url.txt','w') as f: f.write(chosen_format['url'])
+
 						filename = 'downloaded/{}-{}.webm'.format( self.sanitize_video_title(data['title']), data['id'] )
 						already_downloaded = os.path.exists(filename)
 
@@ -331,17 +378,21 @@ class VoiceManager(AlkalinePlugin):
 								req.close()
 								#player.stdin.close()
 
+							self.currently_playing = filename
+							print('voice.py - Now playing YT-download', filename, 'after searching for', self.queue[0]['query'])
 							self.client.voice.play(
 								discord.PCMVolumeTransformer(player, volume=0.5), after=after
 							)
 
 							download_thread.start()
 						else:
+							self.currently_playing = filename
+							print('voice.py - Now playing YT-cached', filename, 'after searching for:', self.queue[0]['query'])
 							self.client.voice.play(
 								discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(filename), volume=0.5)
 							)
 
-						self.queue.pop(0)
+						if len(self.queue) > 0: self.queue.pop(0)
 
 			await asyncio.sleep(1)
 
@@ -370,6 +421,9 @@ commands = {
 	},
 	'stop':{
 		'desc':  'Stops playing and clears the queue.'
+	},
+	'queuenext': {
+		'desc': 'Puts the last song in the queue at the front.'
 	},
 
 	'pladd': {
