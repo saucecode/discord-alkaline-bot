@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from ..alkalineplugin import AlkalinePlugin
-import discord, random, asyncio
+import discord, random, asyncio, re
 
 class RawrPlugin(AlkalinePlugin):
 
@@ -24,6 +24,7 @@ class RawrPlugin(AlkalinePlugin):
 		self.client = client
 
 		self.dad_feature = True
+		self.hit_or_miss_feature = True # well, not really a feature. I guess.
 
 		self.name = 'RawrPlugin'
 		self.version = '1.0'
@@ -44,8 +45,50 @@ class RawrPlugin(AlkalinePlugin):
 
 					await message.channel.send("Hi %s! I'm Dad!" % (whoIsHe,))
 
+		if self.hit_or_miss_feature and len(message.content) >= len('hit or miss') \
+		   and 'miss' in message.content.lower():
+			if self.actually_qualifies(message.content):
+				if random.random() > 0.8:
+					await message.channel.send('I guess they never miss, huh?')
+				else:
+					print('Could\'ve fired on "{}", but didn\'t'.format(message.content))
+
+	# An algorithm to determine whether or not its actually appropriate to respond
+	def actually_qualifies(self, s):
+		s = s.lower()
+		short_strings = ['miss', 'missed', 'missing', 'misses']
+
+		if  ',' in s and all(short not in s.split(',')[0] for short in short_strings) \
+		and len(s.split(',')[0]) > 3:
+			s = s[s.index(',')+1:]
+			return actually_qualifies(s)
+
+		s = re.sub('[^0-9a-zA-Z\s]', '', s)
+		words = [i for i in s.split(' ') if i]
+
+		# Miss me? Miss the train?
+		if words[0] in short_strings and len(words) < 12:
+			return True
+
+		# He missed you.
+		if  words[1] in short_strings and words[0] in ['he', 'she', 'didnt', 'dont', 'you', 'we', 'i'] \
+		and len(words) < 16:
+		   return True
+
+		# He is missing! Let him miss the bus
+		if words[2] in short_strings and len(words) < 16:
+			return True
+
+		# good to watch if you missed it
+		if  (words[-2] in short_strings or words[-1] in short_strings):
+			return True
+
+		return False
+
 	async def on_command(self, message: discord.Message, command : str, args : str):
 		pass
 
+
 plugins = [RawrPlugin]
-commands = {}
+commands = {
+}
