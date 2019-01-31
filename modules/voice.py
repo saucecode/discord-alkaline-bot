@@ -34,11 +34,30 @@ guess_type = lambda x: mimetypes.guess_type(x)[0] or 'application/octet-stream'
 
 			HERE BE DRAGONS
 
+			Part 1:
 			https://github.com/Rapptz/discord.py/issues/1065
 			https://stackoverflow.com/questions/48727101/python-subprocess-popen-fails-to-correctly-pipe-urllib3-response
 
 			subprocess.Popen HATES blocking stdin streams.
 			A threading.Thread hack is used to correctly implement the streaming of audio resources to ffmpeg.
+
+			Part 2:
+			There was a very strange bug that occured in older versions of this file.
+			The \yt command uses youtube-dl to retrieve a download URL for a desired audio format.
+			Then, using urllib3 (or requests - the error occured either way) we start the file download,
+			and simultaneously stream it to ffmpeg for discord.py to use, as well as write it to a file
+			in the downloaded/ folder. On certain videos, for unknown reasons, this error would occur:
+
+			https://pastebin.com/raw/MevWGVdK
+
+			In a nutshell, the download connection is closed prematurely, and for unknown reasons, but
+			*only* if the download was run through requests or urllib3. I don't even know why.
+
+			The solution:
+			wget! Use subprocess to run wget and have it download straight to the downloaded/ cache folder.
+			Then, start reading that file directly from the disk, and pump that into ffmpeg.
+			This also means that the problem in part 1 is completely eliminated, assuming that wget can run the download
+			faster than ffmpeg can play the audio.
 
 '''
 
@@ -347,38 +366,27 @@ class VoiceManager(AlkalinePlugin):
 						already_downloaded = os.path.exists(filename)
 
 						if not already_downloaded:
-							def wdiect(r,proc,fname):
-								#f = open(fname, 'wb')
-								try:
-									while True:
-										chunk = r.read(8192*4)
-										if not chunk:
-											r.close()
-											print('STOPPED THREAD - END OF STREAM')
-											proc.stdin.close()
-											break
-										# TODO Do not write to file, temporarily
-										# f.write(chunk) # FILE WRITE MUST GO FIRST!!
-										proc.stdin.write(chunk)
-								except BrokenPipeError:
-									print('STOPPING THREAD - BROKEN PIPE - CONTINUING DOWNLOAD')
-
-									while True:
-										chunk = r.read(8192*4)
-										if not chunk:
-											break
-										# f.write(chunk)
-
-									r.close()
-								finally:
-									# f.close()
-									pass
-
 							def wget_downloader(args):
 								print('Running shell command: $', ' '.join(args)[:64])
 								subprocess.Popen(args)
 
-							stream_thread = threading.Thread(target=wdiect, args=(req,player._process,filename))
+							def wget_streamer(proc, fname):
+								time.sleep(1)
+								f = open(fname, 'rb')
+								try:
+									while True:
+										chunk = f.read(8192)
+										if not chunk:
+											print('Stopping thread - filestream exhausted', fname)
+											proc.stdin.close()
+											break
+										proc.stdin.write(chunk)
+								except BrokenPipeError:
+									print('STOPPING THREAD - BROKEN PIPE -', fname)
+								finally:
+									f.close()
+
+							stream_thread = threading.Thread(target=wget_streamer, args=(player._process,filename))
 							download_thread = threading.Thread(target=wget_downloader, args=(['wget', '-q', '-O', filename, chosen_format['url']],))
 							download_thread.start()
 
