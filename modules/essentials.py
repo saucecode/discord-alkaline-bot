@@ -16,11 +16,13 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from .alkalineplugin import AlkalinePlugin
-import discord, time, requests, random, asyncio, re
+import discord, time, requests, random, asyncio, re, sys, json
 
 from . import dictionarycom as dictionary
 from .sailortalk import sailor_word
 from . import postfix
+
+from google_images_download import google_images_download
 
 def is_float(f):
 	try:
@@ -101,6 +103,10 @@ class Essentials(AlkalinePlugin):
 		avatar_url = args
 		await self.client.user.edit(avatar=requests.get(avatar_url).content)
 
+	async def chnick(self, message, args):
+		if not args or len(args) < 3: return
+		await message.guild.get_member(self.client.user.id).edit(nick = args)
+
 	async def roll_dice(self, message, args):
 		if not re.match('^(\\d+)d(\\d+)$', args):
 			await message.channel.send('Please enter a D&D roll, like 1d6 or 2d20')
@@ -110,6 +116,24 @@ class Essentials(AlkalinePlugin):
 		sides = int(args.split('d')[1])
 		roll_result = [random.randint(1,sides) for i in range(count)]
 		await message.channel.send('{}: {}'.format(args, ', '.join([str(x) for x in roll_result])))
+
+	async def kill_bot(self, message, args):
+		print('Killed by:', message.author.name)
+		sys.exit(0)
+
+	async def image_search(self, message, args):
+		if not args:
+			await message.channel.send('Please enter a query.')
+			return
+
+		args = re.sub('[^a-zA-Z0-9_ ]', '', args)
+
+		response = google_images_download.googleimagesdownload()
+		arguments = {"keywords":args,"limit":1,"print_urls":False, 'output_directory':'google_images'}
+		paths = sorted(response.download(arguments)[args])
+		with open(paths[0], 'rb') as f:
+			await message.channel.send(content=None, file=discord.File(f, paths[0].split('/')[-1]))
+		# await message.channel.send('```{}```'.format(json.dumps(paths, indent=4)))
 
 
 class EssentialsCalc(AlkalinePlugin):
@@ -180,6 +204,11 @@ commands = {
 		'perms': ['op', 'admin'],
 		'function': Essentials.chavatar
 	},
+	'nick': {
+		'function': Essentials.chnick,
+		'desc': 'Changes the nickname in this server.',
+		'usage': '[nickname]'
+	},
 
 	'calc':{
 		'usage': '[postfix expr]',
@@ -193,5 +222,15 @@ commands = {
 		'usage': 'XdY',
 		'desc': 'Rolls an X sided die Y times',
 		'example': '4d6'
+	},
+
+	'kill':{
+		'function': Essentials.kill_bot
+	},
+
+	'img': {
+		'function': Essentials.image_search,
+		'usage': '[query]',
+		'example': 'jessica rabbit'
 	}
 }
