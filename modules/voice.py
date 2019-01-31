@@ -17,7 +17,7 @@
 """
 
 from .alkalineplugin import AlkalinePlugin
-import discord, asyncio, youtube_dl, requests, urllib3, io, subprocess, threading, json, re, os, random, time, mimetypes
+import discord, asyncio, youtube_dl, requests, urllib3, io, subprocess, threading, json, re, os, random, time, mimetypes, subprocess
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -348,7 +348,7 @@ class VoiceManager(AlkalinePlugin):
 
 						if not already_downloaded:
 							def wdiect(r,proc,fname):
-								f = open(fname, 'wb')
+								#f = open(fname, 'wb')
 								try:
 									while True:
 										chunk = r.read(8192*4)
@@ -357,7 +357,8 @@ class VoiceManager(AlkalinePlugin):
 											print('STOPPED THREAD - END OF STREAM')
 											proc.stdin.close()
 											break
-										f.write(chunk) # FILE WRITE MUST GO FIRST!!
+										# TODO Do not write to file, temporarily
+										# f.write(chunk) # FILE WRITE MUST GO FIRST!!
 										proc.stdin.write(chunk)
 								except BrokenPipeError:
 									print('STOPPING THREAD - BROKEN PIPE - CONTINUING DOWNLOAD')
@@ -366,13 +367,20 @@ class VoiceManager(AlkalinePlugin):
 										chunk = r.read(8192*4)
 										if not chunk:
 											break
-										f.write(chunk)
+										# f.write(chunk)
 
 									r.close()
 								finally:
-									f.close()
+									# f.close()
+									pass
 
-							download_thread = threading.Thread(target=wdiect, args=(req,player._process,filename))
+							def wget_downloader(args):
+								print('Running shell command: $', ' '.join(args)[:64])
+								subprocess.Popen(args)
+
+							stream_thread = threading.Thread(target=wdiect, args=(req,player._process,filename))
+							download_thread = threading.Thread(target=wget_downloader, args=(['wget', '-q', '-O', filename, chosen_format['url']],))
+							download_thread.start()
 
 							def after():
 								req.close()
@@ -384,7 +392,7 @@ class VoiceManager(AlkalinePlugin):
 								discord.PCMVolumeTransformer(player, volume=0.5), after=after
 							)
 
-							download_thread.start()
+							stream_thread.start()
 						else:
 							self.currently_playing = filename
 							print('voice.py - Now playing YT-cached', filename, 'after searching for:', self.queue[0]['query'])
