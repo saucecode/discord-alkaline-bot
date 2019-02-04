@@ -17,6 +17,7 @@
 """
 from ..alkalineplugin import AlkalinePlugin
 import discord, random, asyncio, re
+from collections import defaultdict
 
 class RawrPlugin(AlkalinePlugin):
 
@@ -25,10 +26,14 @@ class RawrPlugin(AlkalinePlugin):
 
 		self.dad_feature = True
 		self.hit_or_miss_feature = True # well, not really a feature. I guess.
+		self.lol_feature = True
 
 		self.name = 'RawrPlugin'
-		self.version = '1.0'
+		self.version = '1.2'
 		self.author = 'Julian'
+
+		self.lol_history = defaultdict(lambda:['', ''])
+		self.repeatable_phrases = ['lol', 'lmao', 'haha', 'sup', 'mew', 'gottem']
 
 	async def on_message(self, message : discord.Message):
 		if self.dad_feature and random.random() > 0.7:
@@ -45,13 +50,23 @@ class RawrPlugin(AlkalinePlugin):
 
 					await message.channel.send("Hi %s! I'm Dad!" % (whoIsHe,))
 
-		if self.hit_or_miss_feature and len(message.content) >= len('hit or miss') \
+
+		if self.hit_or_miss_feature and len(message.content) >= len('hit or miss')-2 \
 		   and 'miss' in message.content.lower():
 			if self.actually_qualifies(message.content):
 				if random.random() > 0.8:
 					await message.channel.send('I guess they never miss, huh?')
 				else:
 					print('Could\'ve fired on "{}", but didn\'t'.format(message.content))
+
+
+		if self.lol_feature and message.author.id != self.client.user.id:
+			self.lol_history[message.channel.id].pop(0)
+			self.lol_history[message.channel.id].append(message.content.lower())
+
+			if self.lol_history[message.channel.id][0] == self.lol_history[message.channel.id][1] and self.lol_history[message.channel.id][0] in self.repeatable_phrases:
+				await message.channel.send(message.content)
+
 
 	# An algorithm to determine whether or not its actually appropriate to respond
 	def actually_qualifies(self, s):
