@@ -63,6 +63,10 @@ class Reactions(AlkalinePlugin):
 
 			self.reactions[reaction_name].append(reaction_data)
 
+			for word in reaction_data.split(' '):
+				if 'http' in word and 'puu.sh' in word:
+					await message.channel.send('Hey <@{}>! puu.sh links expire after 2 weeks of no use. If you really want to keep this reaction, delete it with `{}reactiondel {} {}` and re-upload to <http://imgur.com>'.format(message.author.id, self.client.COMMAND_PREFIX, reaction_name, len(self.reactions[reaction_name]) - 1))
+
 			self.save_reactions()
 
 			await message.channel.send('Added reaction. %s now has %i reactions.' % (reaction_name, len(self.reactions[reaction_name])))
