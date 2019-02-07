@@ -33,7 +33,7 @@ class RawrPlugin(AlkalinePlugin):
 		self.author = 'Julian'
 
 		self.lol_history = defaultdict(lambda:['', ''])
-		self.repeatable_phrases = ['lol', 'lmao', 'haha', 'sup', 'mew', 'gottem']
+		self.repeatable_phrases = ['lol', 'lmao', 'haha', 'kek', 'sup', 'mew', 'gottem', 'night', 'oof', 'hi', 'nty']
 
 	async def on_message(self, message : discord.Message):
 		if self.dad_feature and random.random() > 0.7:
@@ -86,7 +86,7 @@ class RawrPlugin(AlkalinePlugin):
 			return True
 
 		# He missed you.
-		if  words[1] in short_strings and words[0] in ['he', 'she', 'didnt', 'dont', 'you', 'we', 'i'] \
+		if  words[1] in short_strings and words[0] in ['he', 'she', 'didnt', 'dont', 'you', 'we', 'i', 'they', 'theyre', 'were'] \
 		and len(words) < 16:
 		   return True
 
