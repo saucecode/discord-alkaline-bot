@@ -33,7 +33,7 @@ class RawrPlugin(AlkalinePlugin):
 		self.author = 'Julian'
 
 		self.lol_history = defaultdict(lambda:['', ''])
-		self.repeatable_phrases = ['lol', 'lmao', 'haha', 'kek', 'sup', 'mew', 'gottem', 'night', 'oof', 'hi', 'nty']
+		self.repeatable_phrases = ['lol', 'lmao', 'haha', 'kek', 'sup', 'mew', 'gottem', 'oof', 'hi', 'nty']
 
 	async def on_message(self, message : discord.Message):
 		if self.dad_feature and random.random() > 0.7:
@@ -64,8 +64,10 @@ class RawrPlugin(AlkalinePlugin):
 			self.lol_history[message.channel.id].pop(0)
 			self.lol_history[message.channel.id].append(message.content.lower())
 
-			if self.lol_history[message.channel.id][0] == self.lol_history[message.channel.id][1] and self.lol_history[message.channel.id][0] in self.repeatable_phrases:
+			if self.lol_history[message.channel.id][0] == self.lol_history[message.channel.id][1] and self.lol_history[message.channel.id][0] in self.repeatable_phrases and random.random() > 0.4:
 				await message.channel.send(message.content)
+				self.lol_history[message.channel.id].clear()
+				self.lol_history[message.channel.id] += ['', '']
 
 
 	# An algorithm to determine whether or not its actually appropriate to respond
@@ -76,7 +78,7 @@ class RawrPlugin(AlkalinePlugin):
 		if  ',' in s and all(short not in s.split(',')[0] for short in short_strings) \
 		and len(s.split(',')[0]) > 3:
 			s = s[s.index(',')+1:]
-			return actually_qualifies(s)
+			return self.actually_qualifies(s)
 
 		s = re.sub('[^0-9a-zA-Z\s]', '', s)
 		words = [i for i in s.split(' ') if i]
