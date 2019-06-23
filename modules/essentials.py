@@ -107,15 +107,30 @@ class Essentials(AlkalinePlugin):
 		if not args or len(args) < 3: return
 		await message.guild.get_member(self.client.user.id).edit(nick = args)
 
-	async def roll_dice(self, message, args):
+	def roll_dice_raw(self, args):
 		if not re.match('^(\\d+)d(\\d+)$', args):
-			await message.channel.send('Please enter a D&D roll, like 1d6 or 2d20')
-			return
+			return 'Please enter a D&D roll, like 1d6 or 2d20'
 
 		count = int(args.split('d')[0])
 		sides = int(args.split('d')[1])
 		roll_result = [random.randint(1,sides) for i in range(count)]
-		await message.channel.send('{}: {}'.format(args, ', '.join([str(x) for x in roll_result])))
+		return roll_result
+
+	async def roll_dice(self, message, args):
+		result = self.roll_dice_raw(args)
+		if type(result) == str:
+			await message.channel.send(result)
+			return
+		
+		await message.channel.send('{}: {}'.format(args, ', '.join([str(x) for x in result])))
+	
+	async def roll_dice_and_sum(self, message, args):
+		result = self.roll_dice_raw(args)
+		if type(result) == str:
+			await message.channel.send(result)
+			return
+			
+		await message.channel.send('{}: {}, sums to {}'.format(args, ', '.join([str(x) for x in result]), sum(result)))
 
 	async def kill_bot(self, message, args):
 		print('Killed by:', message.author.name)
@@ -129,8 +144,9 @@ class Essentials(AlkalinePlugin):
 		args = re.sub('[^a-zA-Z0-9_ ]', '', args)
 
 		response = google_images_download.googleimagesdownload()
-		arguments = {"keywords":args,"limit":1,"print_urls":False, 'output_directory':'google_images'}
+		arguments = {"keywords":args,"limit":3,"print_urls":False, 'output_directory':'google_images'}
 		paths = sorted(response.download(arguments)[args])
+		paths = [i for i in paths if i]
 		with open(paths[0], 'rb') as f:
 			await message.channel.send(content=None, file=discord.File(f, paths[0].split('/')[-1]))
 		# await message.channel.send('```{}```'.format(json.dumps(paths, indent=4)))
@@ -221,6 +237,12 @@ commands = {
 		'function': Essentials.roll_dice,
 		'usage': 'XdY',
 		'desc': 'Rolls an X sided die Y times',
+		'example': '4d6'
+	},
+	'rolls':{
+		'function': Essentials.roll_dice_and_sum,
+		'usage': 'XdY',
+		'desc': 'Rolls an X sided die Y times, and prints the sum.',
 		'example': '4d6'
 	},
 
