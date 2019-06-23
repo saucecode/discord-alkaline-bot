@@ -200,6 +200,7 @@ class TwentySquaresGame:
 
 		image_bytes = io.BytesIO()
 		im.save(image_bytes, format='png')
+		image_bytes.seek(0)
 
 		return image_bytes
 
@@ -212,7 +213,7 @@ class TwentySquaresGame:
 
 		self.last_board_message = await self.chan.send(
 			'Game between <@{}> ({}) and <@{}> ({})'.format(self.red.id, self.redPoints, self.blue.id, self.bluePoints),
-			file=discord.File( image_bytes.getbuffer(), filename='{}.png'.format(int(time.time())) )
+			file=discord.File( image_bytes, filename='{}.png'.format(int(time.time())) )
 		)
 
 	async def start(self):
