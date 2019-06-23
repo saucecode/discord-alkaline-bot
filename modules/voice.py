@@ -371,9 +371,9 @@ class VoiceManager(AlkalinePlugin):
 								subprocess.Popen(args)
 
 							def wget_streamer(proc, fname):
-								time.sleep(0.5)
+								time.sleep(0.75)
 								limit = 0
-								while os.stat(fname).st_size < 8192 and limit < 1:
+								while os.stat(fname).st_size < 20000 and limit < 3:
 									time.sleep(0.1)
 									limit += 0.1
 								f = open(fname, 'rb')
