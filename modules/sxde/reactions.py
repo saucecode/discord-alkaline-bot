@@ -24,6 +24,8 @@ class Reactions(AlkalinePlugin):
 		self.client = client
 
 		self.BACKUP_FILES = ['data/reactions.json']
+		
+		self.existing_commands = []
 
 		self.reactions = {}
 		self.load_reactions()
@@ -44,11 +46,25 @@ class Reactions(AlkalinePlugin):
 			json.dump(self.reactions, f, indent=4, separators=(',', ': '))
 
 	async def on_message(self, message):
-		if message.content[:2] == self.client.COMMAND_PREFIX * 2 and len(message.content) > 2:
-			reaction_name = message.content[2:]
-			if reaction_name in self.reactions and len(self.reactions[reaction_name]) > 0:
-				idx = random.randint(0, len(self.reactions[reaction_name]) - 1)
-				await message.channel.send('{} {}'.format(idx, self.reactions[reaction_name][idx]))
+		# regular reaction usage
+		if message.content[0] == self.client.COMMAND_PREFIX:
+			if message.content[:2] == self.client.COMMAND_PREFIX * 2 and len(message.content) > 2:
+				reaction_name = message.content[2:]
+				if reaction_name in self.reactions and len(self.reactions[reaction_name]) > 0:
+					idx = random.randint(0, len(self.reactions[reaction_name]) - 1)
+					await message.channel.send('{} {}'.format(idx, self.reactions[reaction_name][idx]))
+					
+			elif len(message.content) > 2: # Yell at the user for using only backslash when trying to trigger a reaction.
+				
+				# quickly generates a list of all the valid commands
+				if len(self.existing_commands) == 0:
+					self.existing_commands = [cmd for plugin in self.client.plugins for cmd in plugin.commands]
+				
+				reaction_name = message.content[1:]
+				
+				# do NOT yell at the use if they might be using a real command
+				if reaction_name in self.reactions and reaction_name not in self.existing_commands:
+					await message.channel.send('It\'s two backslashes you fucking moron.')
 
 	async def on_command(self, message, command, args):
 		if command == 'reactionadd':
