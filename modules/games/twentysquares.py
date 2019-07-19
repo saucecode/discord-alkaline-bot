@@ -5,13 +5,20 @@ from PIL import Image, ImageDraw, ImageFont
 
 from concurrent.futures import ThreadPoolExecutor
 
-random.seed(os.urandom(100))
+random.seed(os.urandom(1000))
 
 BOARD_SIZE = 400,300
 CHECKMARK = "\u2705"
 CROSSMARK = "\u274E"
 ROLL =  "\U0001f3b2"
 DIGIT = ["\U00002b50", "\U00000031\U000020e3", "\U00000032\U000020e3", "\U00000033\U000020e3", "\U00000034\U000020e3", "\U00000035\U000020e3", "\U00000036\U000020e3", "\U00000037\U000020e3", "\U00000038\U000020e3", "\U00000039\U000020e3"]
+
+STAT_TURNS_SPENT_ON_CENTER = 'turns_on_center'
+STAT_HISTORY = 'roll_history'
+STAT_KILLS = 'kills'
+STAT_KILL_SETBACKS = 'setbacks'
+STAT_EXTRA_ROLLS = 'rosettes'
+STAT_FROZEN = 'rolled_without_moving'
 
 """
 
@@ -84,6 +91,15 @@ class TwentySquaresGame:
 		self.red = playerRed
 		self.blue = playerBlue
 		self.chan = chan
+		
+		self.stats = {
+			STAT_HISTORY: {playerRed: [], playerBlue: []}, # a pair of lists, for red and blue respectively
+			STAT_TURNS_SPENT_ON_CENTER: {playerRed: 0, playerBlue: 0},
+			STAT_KILLS: {playerRed: 0, playerBlue: 0},
+			STAT_EXTRA_ROLLS: {playerRed: 0, playerBlue: 0},
+			STAT_FROZEN: {playerRed: 0, playerBlue: 0},
+			STAT_KILL_SETBACKS: {playerRed: 0, playerBlue: 0}
+		}
 
 		self.turn = self.red
 		self.status = None
@@ -140,6 +156,16 @@ class TwentySquaresGame:
 		self.bottomSquare = bottomSquare
 		self.redBottomSquare = redBottomSquare
 		self.blueBottomSquare = blueBottomSquare
+		self.specialSquare = self.topSquare.next.next.next
+
+	def distance_to_square(self, square):
+		# ONLY checks the 'warring' row of squares
+		subject = self.topSquare
+		for i in range(7):
+			if subject == square:
+				return i + 5
+			subject = subject.next
+		return 0
 
 	def render_board(self):
 		im = Image.new('RGB', size=BOARD_SIZE)
@@ -231,6 +257,9 @@ class TwentySquaresGame:
 			winner = self.red if self.redPoints == self.POINTS_LIMIT else self.blue
 			await self.populate_board()
 			await self.chan.send('**WINNER!** <@{.id}> has {} <@{.id}> by winning this 4500 year old game.'.format(winner, filthy_verb(), self.red if winner == self.blue else self.blue))
+			
+			for rep in self.produce_stats_report():
+				await self.chan.send(rep)
 
 			self.parent.games.remove(self)
 		else:
@@ -245,7 +274,19 @@ class TwentySquaresGame:
 
 	async def do_roll(self):
 		if not self.status == 'waiting for roll': return
+		
 		self.amount = sum( [random.randint(0,1) for i in range(4)] )
+		self.stats[STAT_HISTORY][self.turn].append(self.amount) # track the rolls
+		
+		# track STAT_TURNS_SPENT_ON_CENTER
+		subject = None
+		if self.turn == self.red:
+			subject = self.redPieces
+		else:
+			subject = self.bluePieces
+		if any(p.square.neutral for p in subject if p.square):
+			self.stats[STAT_TURNS_SPENT_ON_CENTER][self.turn] += 1
+		
 		await self.status_message.remove_reaction( ROLL, self.client.user )
 		possible_moves = await self.determine_possible_moves(self.turn, self.amount)
 
@@ -254,6 +295,7 @@ class TwentySquaresGame:
 		if possible_moves == 0:
 			await self.status_message.edit(content='<@{.id}> has rolled **{}** and **cannot move!**'.format(self.turn, self.amount), delete_after=3.0)
 			self.last_status_message = None
+			self.stats[STAT_FROZEN][self.turn] += 1
 			await self.next_turn()
 		else:
 			if self.can_move_onto_board():
@@ -333,6 +375,8 @@ class TwentySquaresGame:
 				print('MOVE IMPOSSIBLE: Cannot move onto the neutral tile')
 				return
 			position.marker.square = None
+			self.stats[STAT_KILLS][self.turn] += 1 # STAT_KILLS -- a kill was made
+			self.stats[STAT_KILL_SETBACKS][self.turn] += self.distance_to_square(position)
 
 		if position.marker is not None and position.marker.color == ('red' if self.turn == self.red else 'blue'):
 			print('MOVE IMPOSSIBLE: Cannot move onto same color')
@@ -345,7 +389,7 @@ class TwentySquaresGame:
 		if marker.square.special:
 			print('ROSETTE!')
 			self.turn = self.red if self.turn == self.blue else self.blue
-
+			self.stats[STAT_EXTRA_ROLLS][self.turn] += 1
 
 
 	async def determine_possible_moves(self, player, spaces):
@@ -385,6 +429,51 @@ class TwentySquaresGame:
 					rv += 1
 
 		return rv
+	
+	def produce_stats_report(self):
+		out = []
+		
+		for player in [self.red, self.blue]:
+			rollCount = len(self.stats[STAT_HISTORY][player])
+			if rollCount == 0: continue
+			
+			rollTotal = sum(self.stats[STAT_HISTORY][player])
+			subtotals = [len([r for r in self.stats[STAT_HISTORY][player] if r == R]) for R in range(5)]
+			avg = [
+				subtotal / rollCount * 100 for subtotal in subtotals
+			]
+			kills = self.stats[STAT_KILLS][player]
+			frozen = self.stats[STAT_FROZEN][player] - subtotals[0] # subtrack the times they rolled a 0
+			rosette = self.stats[STAT_EXTRA_ROLLS][player]
+			center = self.stats[STAT_TURNS_SPENT_ON_CENTER][player]
+			
+			string = [
+				'<@{id}> rolled {rollCount} times to a total of {rollTotal}. Roll rates (0 to 4): {avg0:.0f}% {avg1:.0f}% {avg2:.0f}% {avg3:.0f}% {avg4:.0f}%.\n'.format(
+					id=player.id, rollCount = rollCount, rollTotal=rollTotal,
+					avg0 = avg[0], avg1 = avg[1], avg2 = avg[2], avg3 = avg[3], avg4 = avg[4]
+				)
+			]
+			
+			if frozen > 0:
+				string.append('{frozen} times they rolled higher than zero but could not move.'.format(frozen = frozen))
+				
+			if kills > 0:
+				string.append('They scored {kills} kills on the opponent, setting them back a cumulative {setback} squares.'.format(
+					kills = kills,
+					setback = self.stats[STAT_KILL_SETBACKS][player]
+				))
+				
+			if rosette > 0:
+				if center > 0:
+					string.append('Landed on a rosette {rosette} times, and controlled the center rosette for {center} turns!'.format(
+						rosette = rosette, center = center
+					))
+				else:
+					string.append('Landed on a rosette {rosette} times.'.format(rosette=rosette))
+		
+			out.append(' '.join(string))
+		
+		return out
 
 class TwentySquares(AlkalinePlugin):
 
@@ -397,7 +486,7 @@ class TwentySquares(AlkalinePlugin):
 		self.games = []
 
 		self.name = 'The Royal Game of Ur'
-		self.version = '0.2'
+		self.version = '0.9'
 		self.author = 'Julian'
 
 	async def on_command(self, message: discord.Message, command : str, args : str):
@@ -415,6 +504,12 @@ class TwentySquares(AlkalinePlugin):
 			await challenge_msg.add_reaction(CHECKMARK)
 			await challenge_msg.add_reaction(CROSSMARK)
 			self.challenges[challenge_msg.id] = (other, message.author)
+		
+		elif command == 'gamestats':
+			game = next((game for game in reversed(self.games) if message.author in [game.red, game.blue]), None)
+			if game:
+				for rep in game.produce_stats_report():
+					await game.chan.send(rep)
 
 	async def on_reaction_add(self, reaction : discord.Reaction, user : discord.User):
 		if reaction.message.id in self.challenges:
@@ -458,5 +553,8 @@ commands = {
 		'usage': '@player1',
 		'desc':  'Challenges another player to a game of Ur.',
 		'example': '@Marco'
+	},
+	'gamestats': {
+		'desc': 'Prints the stats for the game the sender is currently playing.'
 	}
 }
