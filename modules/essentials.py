@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from .alkalineplugin import AlkalinePlugin
-import discord, time, requests, random, asyncio, re, sys, json
+import discord, time, requests, random, asyncio, re, sys, json, datetime
 
 from . import dictionarycom as dictionary
 from .sailortalk import sailor_word
@@ -35,6 +35,8 @@ class Essentials(AlkalinePlugin):
 
 	def __init__(self, client):
 		self.client = client
+
+		self.unauthorized_to_kill = [182411730435964928]
 
 		self.name = 'Essentials'
 		self.version = '1.0'
@@ -131,10 +133,22 @@ class Essentials(AlkalinePlugin):
 			return
 			
 		await message.channel.send('{}: {}, sums to {}'.format(args, ', '.join([str(x) for x in result]), sum(result)))
+	
+	async def when_is_christmas(self, message, args):
+		today = datetime.date.today()
+		year = today.year
+		christmas = datetime.date(year, 12, 25)
+		delta = christmas - today
+		if delta.days < 0:
+			christmas = datetime.date(year+1, 12, 25)
+			delta = christmas - today
+		
+		await message.channel.send('Christmas is in %i days!' % delta.days)
 
 	async def kill_bot(self, message, args):
-		print('Killed by:', message.author.name)
-		sys.exit(0)
+		if message.author.id not in self.unauthorized_to_kill:
+			print('Killed by:', message.author.name)
+			sys.exit(0)
 
 	async def image_search(self, message, args):
 		if not args:
@@ -244,6 +258,9 @@ commands = {
 		'usage': 'XdY',
 		'desc': 'Rolls an X sided die Y times, and prints the sum.',
 		'example': '4d6'
+	},
+	'christmas':{
+		'function': Essentials.when_is_christmas
 	},
 
 	'kill':{
