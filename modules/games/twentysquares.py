@@ -82,6 +82,8 @@ class TwentySquaresGame:
 	def __init__(self, parent, playerRed : discord.User , playerBlue : discord.User, chan : discord.TextChannel ):
 		self.parent = parent
 		self.client = parent.client
+		self.font = ImageFont.truetype('Kenney Pixel.ttf', 24)
+		self.bigFont = ImageFont.truetype('Kenney Pixel.ttf', 32)
 
 		self.executor = self.parent.executor
 
@@ -157,6 +159,14 @@ class TwentySquaresGame:
 		self.redBottomSquare = redBottomSquare
 		self.blueBottomSquare = blueBottomSquare
 		self.specialSquare = self.topSquare.next.next.next
+		
+		# setup render saving directories
+		self.filenumber = 0
+		self.gamename = str(int(time.time()))
+		if not os.path.exists('twentysquares'):
+			os.mkdir('twentysquares')
+		if not os.path.exists('twentysquares/{}'.format(self.gamename)):
+			os.mkdir('twentysquares/{}'.format(self.gamename))
 
 	def distance_to_square(self, square):
 		# ONLY checks the 'warring' row of squares
@@ -169,11 +179,13 @@ class TwentySquaresGame:
 
 	def render_board(self):
 		im = Image.new('RGB', size=BOARD_SIZE)
-		font = ImageFont.truetype('Kenney Pixel.ttf', 24)
+		font = self.font
 		draw = ImageDraw.Draw(im)
 		draw.text((BOARD_SIZE[0]/2 - 48,4), 'Game of Ur', fill='white', font=font)
 		draw.text( (4,64), self.red.display_name, fill='red', font=font )
-		draw.text( (BOARD_SIZE[0] - 10*len(self.blue.display_name),64), self.blue.display_name, fill='blue', font=font )
+		draw.text( (4*len(self.red.display_name) + 4,80), str(self.redPoints), fill='white', font=self.bigFont )
+		draw.text( (BOARD_SIZE[0] - 10*len(self.blue.display_name),64), self.blue.display_name, fill='#4e4aff', font=font )
+		draw.text( (BOARD_SIZE[0] - 6*len(self.blue.display_name),80), str(self.bluePoints), fill='white', font=self.bigFont )
 
 		r = self.redSpawnSquare
 		b = self.blueSpawnSquare
@@ -227,6 +239,11 @@ class TwentySquaresGame:
 		image_bytes = io.BytesIO()
 		im.save(image_bytes, format='png')
 		image_bytes.seek(0)
+		
+		# write to file as well
+		with open('twentysquares/{}/{:04}.png'.format(self.gamename, self.filenumber), 'wb') as f:
+			im.save(f, format='png')
+		self.filenumber += 1
 
 		return image_bytes
 
