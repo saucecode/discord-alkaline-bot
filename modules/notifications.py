@@ -137,7 +137,7 @@ class Notifications(AlkalinePlugin):
 				else:
 					subject = discord.utils.find(lambda m: subject.lower() in m.name.lower() or subject.lower() in m.display_name.lower(), message.guild.members)
 
-			if type(subject) == str:
+			if type(subject) == str or subject is None:
 				await message.channel.send('I don\'t know who that is...')
 				return
 
