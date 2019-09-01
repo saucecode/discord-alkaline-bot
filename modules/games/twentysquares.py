@@ -405,8 +405,8 @@ class TwentySquaresGame:
 
 		if marker.square.special:
 			print('ROSETTE!')
-			self.turn = self.red if self.turn == self.blue else self.blue
 			self.stats[STAT_EXTRA_ROLLS][self.turn] += 1
+			self.turn = self.red if self.turn == self.blue else self.blue
 
 
 	async def determine_possible_moves(self, player, spaces):
