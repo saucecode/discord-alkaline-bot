@@ -349,6 +349,7 @@ class TwentySquaresGame:
 
 		if marker.square.special:
 			print('ROSETTE!')
+			self.stats[STAT_EXTRA_ROLLS][self.turn] += 1
 			self.turn = self.red if self.turn == self.blue else self.blue
 
 	async def attempt_advance(self, pieceNumber):
