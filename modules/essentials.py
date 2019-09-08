@@ -22,6 +22,7 @@ from . import dictionarycom as dictionary
 from .sailortalk import sailor_word
 from . import postfix
 
+from concurrent.futures import ThreadPoolExecutor
 from google_images_download import google_images_download
 
 def is_float(f):
@@ -37,6 +38,7 @@ class Essentials(AlkalinePlugin):
 		self.client = client
 
 		self.unauthorized_to_kill = [182411730435964928]
+		self.executor = ThreadPoolExecutor(2)
 
 		self.name = 'Essentials'
 		self.version = '1.0'
@@ -142,6 +144,16 @@ class Essentials(AlkalinePlugin):
 		if delta.days < 0:
 			christmas = datetime.date(year+1, 12, 25)
 			delta = christmas - today
+
+		# Searches for a :christmas_tree: (number of days) :christmas_tree:
+		# pattern in the channel topic and updates the number.
+		original = message.channel.topic.encode()
+		match = re.search(b'(\xf0\x9f\x8e\x84|:christmas_tree:) (\\d+) (\xf0\x9f\x8e\x84|:christmas_tree:)(.*)$', original)
+		if match:
+			new = list(match.groups())
+			new[1] = str(delta.days).encode()
+			new = b' '.join(new)
+			await message.channel.edit(topic=new.decode())
 		
 		await message.channel.send('Christmas is in %i days!' % delta.days)
 
@@ -159,7 +171,8 @@ class Essentials(AlkalinePlugin):
 
 		response = google_images_download.googleimagesdownload()
 		arguments = {"keywords":args,"limit":3,"print_urls":False, 'output_directory':'google_images'}
-		paths = sorted(response.download(arguments)[args])
+		results = await self.client.loop.run_in_executor(self.executor, response.download, arguments)
+		paths = sorted(results[args])
 		paths = [i for i in paths if i]
 		with open(paths[0], 'rb') as f:
 			await message.channel.send(content=None, file=discord.File(f, paths[0].split('/')[-1]))
