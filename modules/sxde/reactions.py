@@ -46,6 +46,7 @@ class Reactions(AlkalinePlugin):
 			json.dump(self.reactions, f, indent=4, separators=(',', ': '))
 
 	async def on_message(self, message):
+		if len(message.content) == 0: return
 		# regular reaction usage
 		if message.content[0] == self.client.COMMAND_PREFIX:
 			if message.content[:2] == self.client.COMMAND_PREFIX * 2 and len(message.content) > 2:
