@@ -75,7 +75,7 @@ class VoiceManager(AlkalinePlugin):
 		self.load_playlists()
 		self.currently_playing = 'Nothing'
 
-		self.audio_format_codes = ['171', '43']
+		self.audio_format_codes = ['171', '43', '251', '250']
 
 		self.name = 'VoiceManager'
 		self.version = '0.3'
@@ -352,6 +352,7 @@ class VoiceManager(AlkalinePlugin):
 
 						available_formats = [j for j in data['formats'] if j['format_id'] in self.audio_format_codes]
 						if len(available_formats) == 0:
+							print('voice.py - Could not find any suitable formats!\nI accept: {}\nVideo offers:{}'.format(' '.join(self.audio_format_codes), ' '.join([i['format_id'] for i in data['formats']]) ))
 							self.queue.pop(0)
 							self.queue.insert(0, {'type':'file', 'filename':'data/error2.wav'})
 							continue
