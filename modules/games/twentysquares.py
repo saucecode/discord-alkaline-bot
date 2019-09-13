@@ -1,6 +1,6 @@
 from ..alkalineplugin import AlkalinePlugin
 from ..sailortalk import filthy_verb
-import discord, io, time, random, os
+import discord, io, time, random, os, json
 from PIL import Image, ImageDraw, ImageFont
 
 from concurrent.futures import ThreadPoolExecutor
@@ -258,6 +258,43 @@ class TwentySquaresGame:
 			'Game between <@{}> ({}) and <@{}> ({})'.format(self.red.id, self.redPoints, self.blue.id, self.bluePoints),
 			file=discord.File( image_bytes, filename='{}.png'.format(int(time.time())) )
 		)
+	
+	def stringify_gamestate(self):
+		# Steps through all the squares, recording the position of each marker as they're found
+		
+		# initialize all pieces to position 15
+		state = {
+			'red':[15 for _ in range(7)],
+			'blue':[15 for _ in range(7)],
+			'turn':'red' if self.turn == self.red else 'blue'
+		}
+		
+		# set existing pieces not on board to position 0
+		for piece in self.redPieces + self.bluePieces:
+			if piece.square is None:
+				state[piece.color][piece.index-1] = 0;
+		
+		redCursor = self.redSpawnSquare
+		blueCursor = self.blueSpawnSquare
+		
+		for position in range(1,15):
+			# edge case for diverging square 12
+			if type(redCursor) == list:
+				redCursor = redCursor[0]
+			if type(blueCursor) == list:
+				blueCursor = blueCursor[1]
+			
+			# store the position of the marker in the state
+			if redCursor.marker and redCursor.marker.color == 'red':
+				state['red'][redCursor.marker.index-1] = position
+			if blueCursor.marker and blueCursor.marker.color == 'blue':
+				state['blue'][blueCursor.marker.index-1] = position
+			
+			# advance both cursors
+			redCursor = redCursor.next
+			blueCursor = blueCursor.next
+		
+		return json.dumps(state)
 
 	async def start(self):
 		self.turn = random.choice( [self.red, self.blue] )
@@ -528,6 +565,11 @@ class TwentySquares(AlkalinePlugin):
 			if game:
 				for rep in game.produce_stats_report():
 					await game.chan.send(rep)
+		
+		elif command == 'gamestate':
+			game = next((game for game in reversed(self.games) if message.author in [game.red, game.blue]), None)
+			if game:
+				await game.chan.send('`{}`'.format(game.stringify_gamestate()))
 
 	async def on_reaction_add(self, reaction : discord.Reaction, user : discord.User):
 		if reaction.message.id in self.challenges:
@@ -574,5 +616,8 @@ commands = {
 	},
 	'gamestats': {
 		'desc': 'Prints the stats for the game the sender is currently playing.'
+	},
+	'gamestate': {
+		'desc': 'Outputs the gamestate as a JSON string.'
 	}
 }
