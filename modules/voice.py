@@ -19,6 +19,11 @@
 from .alkalineplugin import AlkalinePlugin
 import discord, asyncio, youtube_dl, requests, urllib3, io, subprocess, threading, json, re, os, random, time, mimetypes, subprocess
 
+try:
+	from gtts import gTTS
+except:
+	gTTS = None
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 from concurrent.futures import ThreadPoolExecutor
@@ -109,6 +114,14 @@ class VoiceManager(AlkalinePlugin):
 			json.dump(self.playlists, f, indent=4, separators=(',', ': '))
 
 	async def on_command(self, message: discord.Message, command : str, args : str):
+	
+		if command == 'tts':
+			if not gTTS:
+				await message.channel.send('TTS is not supported')
+			else:
+				await self.client.loop.run_in_executor(self.executor, lambda:gTTS(args, lang='en').save('tts.mp3'))
+				self.queue.append({'type':'file', 'filename': 'tts.mp3', 'volume': 1.3})
+	
 		if command == 'voice':
 			if not message.author.voice:
 				await message.channel.send('You need to be in a voice channel.')
@@ -402,7 +415,7 @@ class VoiceManager(AlkalinePlugin):
 							self.currently_playing = filename
 							print('voice.py - Now playing YT-download', filename, 'after searching for', self.queue[0]['query'])
 							self.client.voice.play(
-								discord.PCMVolumeTransformer(player, volume=0.5), after=after
+								discord.PCMVolumeTransformer(player, volume=self.queue[0].get('volume') or 0.5), after=after
 							)
 
 							stream_thread.start()
@@ -410,7 +423,7 @@ class VoiceManager(AlkalinePlugin):
 							self.currently_playing = filename
 							print('voice.py - Now playing YT-cached', filename, 'after searching for:', self.queue[0]['query'])
 							self.client.voice.play(
-								discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(filename), volume=0.5)
+								discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(filename), volume=self.queue[0].get('volume') or 0.5)
 							)
 
 						if len(self.queue) > 0: self.queue.pop(0)
@@ -456,5 +469,6 @@ commands = {
 	'plplay': {},
 	'playlists': {},
 	'plview':{},
-	'shuffle':{}
+	'shuffle':{},
+	'tts':{}
 }
